@@ -1,15 +1,17 @@
 body { 
   margin: 0; 
-  background: #fff; 
+  background: #ffffff; 
   overflow: hidden; /* 스크롤바 숨기기 */
+  transition: background-color 0.3s ease; /* 배경 색 변경 시 부드러운 전환 */
 }
 
 canvas { 
   display: block; 
   width: 100vw; 
   height: 100vh; 
-  background: #fff; 
+  background: #ffffff; 
   position: fixed;
   top: 0;
   left: 0;
+  transition: background-color 0.3s ease; /* 배경 색 변경 시 부드러운 전환 */
 } 

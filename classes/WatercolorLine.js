@@ -54,8 +54,8 @@ export class WatercolorLine {
             const y = y1 + (y2 - y1) * t;
             
             // 수채화 느낌의 랜덤 오프셋
-            const offsetX = (Math.random() - 0.5) * width * WATERCOLOR_CONSTANTS.LINE_OFFSET_FACTOR;
-            const offsetY = (Math.random() - 0.5) * width * WATERCOLOR_CONSTANTS.LINE_OFFSET_FACTOR;
+            const offsetX = (Math.random() - 0.5) * width * WATERCOLOR_CONSTANTS.LINE_OFFSET_FACTOR * 0;
+            const offsetY = Math.random() * width * WATERCOLOR_CONSTANTS.LINE_OFFSET_FACTOR * 0.5;
             
             path.push({ x: x + offsetX, y: y + offsetY });
         }
