@@ -86,6 +86,11 @@ export function setupGUI(onChangeCallback) {
     // 레이어 컨트롤
     const layerFolder = gui.addFolder('Layer Controls');
     const layerControls = {
+        toggleBars: () => {
+            if (window.toggleBars) {
+                window.toggleBars();
+            }
+        },
         toggleLines: () => {
             if (window.toggleLines) {
                 window.toggleLines();
@@ -108,6 +113,7 @@ export function setupGUI(onChangeCallback) {
         }
     };
     
+    layerFolder.add(layerControls, 'toggleBars').name('Toggle Bars');
     layerFolder.add(layerControls, 'toggleLines').name('Toggle Lines');
     layerFolder.add(layerControls, 'redrawBars').name('Redraw Bars');
     layerFolder.add(layerControls, 'redrawLines').name('Redraw Lines');

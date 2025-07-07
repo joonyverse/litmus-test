@@ -197,6 +197,11 @@ function toggleLines() {
     layerManager.toggleLayer('lines');
 }
 
+// 막대 토글 함수
+function toggleBars() {
+    layerManager.toggleLayer('bars');
+}
+
 // 레이어별 그리기 함수들
 function redrawBars() {
     drawBars();
@@ -225,6 +230,7 @@ drawPattern();
 
 // 전역 함수로 토글 기능 노출
 window.toggleLines = toggleLines;
+window.toggleBars = toggleBars;
 window.redrawBars = redrawBars;
 window.redrawLines = redrawLines;
 window.redrawEffects = redrawEffects; 
