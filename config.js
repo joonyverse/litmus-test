@@ -21,7 +21,7 @@ const DEFAULT_OPTIONS = {
     maxNumBarPerGroup: 12,
     
     // 선 효과 설정
-    lineBlurAmount: 0.3,
+    lineBlurAmount: 0.0,
     lineBlurCount: 2,
     
     // 막대 수채화 효과 설정
@@ -34,6 +34,11 @@ const DEFAULT_OPTIONS = {
     barWobble: 8,
     barRotation: 15,
     barHeightVariation: 20,
+    
+    // 랜덤 블랭킹 설정
+    blankingEnabled: false,
+    blankingPercentage: 30, // 숨길 막대의 비율 (0-100)
+    blankingSeed: Math.random(), // 랜덤 시드
 };
 
 // 설정 유효성 검사 함수
@@ -110,6 +115,11 @@ export function setupGUI(onChangeCallback) {
             if (window.redrawEffects) {
                 window.redrawEffects();
             }
+        },
+        toggleBlanking: () => {
+            if (window.toggleBlanking) {
+                window.toggleBlanking();
+            }
         }
     };
     
@@ -118,6 +128,7 @@ export function setupGUI(onChangeCallback) {
     layerFolder.add(layerControls, 'redrawBars').name('Redraw Bars');
     layerFolder.add(layerControls, 'redrawLines').name('Redraw Lines');
     layerFolder.add(layerControls, 'redrawEffects').name('Redraw Effects');
+    layerFolder.add(layerControls, 'toggleBlanking').name('Toggle Blanking');
     layerFolder.open();
     
     // 레이아웃 컨트롤
@@ -157,6 +168,19 @@ export function setupGUI(onChangeCallback) {
     naturalFolder.add(options, 'barRotation', 0, 45, 1).name('Bar Rotation').onChange(onChangeCallback);
     naturalFolder.add(options, 'barHeightVariation', 0, 50, 1).name('Height Variation').onChange(onChangeCallback);
     naturalFolder.open();
+    
+    // 랜덤 블랭킹 컨트롤
+    const blankingFolder = gui.addFolder('Random Blanking');
+    blankingFolder.add(options, 'blankingEnabled').name('Enable Blanking').onChange(onChangeCallback);
+    blankingFolder.add(options, 'blankingPercentage', 0, 100, 5).name('Blanking %').onChange(onChangeCallback);
+    const blankingControls = {
+        randomizeBlanking: () => {
+            options.blankingSeed = Math.random();
+            onChangeCallback();
+        }
+    };
+    blankingFolder.add(blankingControls, 'randomizeBlanking').name('Randomize Pattern');
+    blankingFolder.open();
     
     // 리셋 버튼 추가
     const resetButton = { reset: () => {

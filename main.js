@@ -4,6 +4,22 @@ import { options, palettes, setupGUI } from './config.js';
 import { WatercolorBar, WatercolorLine } from './classes/index.js';
 import { drawNoiseOverlay } from './effects.js';
 
+// 결정적 랜덤 함수 (시드 기반)
+function seededRandom(seed) {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
+// 블랭킹 결정 함수
+function shouldBlank(col, row) {
+    if (!options.blankingEnabled) return false;
+    
+    const seed = options.blankingSeed + col * 1000 + row * 10000;
+    const randomValue = seededRandom(seed);
+    
+    return randomValue < (options.blankingPercentage / 100);
+}
+
 // 캔버스 초기화
 const canvas = document.getElementById('art');
 const ctx = canvas.getContext('2d');
@@ -122,6 +138,9 @@ function drawBarLines(x, y, barWidth, actualHeight, rotation) {
 
 // 단일 막대 그리기 함수
 function drawBar(col, row, colorGroupManager) {
+    // 블랭킹 체크
+    if (shouldBlank(col, row)) return;
+    
     const grid = calculateGrid();
     const { x, y } = calculateBarPosition(col, row, grid);
     const { actualHeight, rotation, wobble } = calculateBarProperties();
@@ -143,6 +162,9 @@ function drawBars() {
     
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
+            // 블랭킹 체크
+            if (shouldBlank(col, row)) continue;
+            
             const grid = calculateGrid();
             const { x, y } = calculateBarPosition(col, row, grid);
             const { actualHeight, rotation, wobble } = calculateBarProperties();
@@ -162,6 +184,9 @@ function drawLines() {
     
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
+            // 블랭킹 체크
+            if (shouldBlank(col, row)) continue;
+            
             const grid = calculateGrid();
             const { x, y } = calculateBarPosition(col, row, grid);
             const { actualHeight, rotation, wobble } = calculateBarProperties();
@@ -202,6 +227,12 @@ function toggleBars() {
     layerManager.toggleLayer('bars');
 }
 
+// 블랭킹 토글 함수
+function toggleBlanking() {
+    options.blankingEnabled = !options.blankingEnabled;
+    drawPattern();
+}
+
 // 레이어별 그리기 함수들
 function redrawBars() {
     drawBars();
@@ -231,6 +262,7 @@ drawPattern();
 // 전역 함수로 토글 기능 노출
 window.toggleLines = toggleLines;
 window.toggleBars = toggleBars;
+window.toggleBlanking = toggleBlanking;
 window.redrawBars = redrawBars;
 window.redrawLines = redrawLines;
 window.redrawEffects = redrawEffects; 
