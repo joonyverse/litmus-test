@@ -1,2 +1,15 @@
-body { margin: 0; background: #fff; }
-canvas { display: block; margin: 0 auto; background: #fff; } 
+body { 
+  margin: 0; 
+  background: #fff; 
+  overflow: hidden; /* 스크롤바 숨기기 */
+}
+
+canvas { 
+  display: block; 
+  width: 100vw; 
+  height: 100vh; 
+  background: #fff; 
+  position: fixed;
+  top: 0;
+  left: 0;
+} 
