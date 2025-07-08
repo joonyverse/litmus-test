@@ -434,10 +434,10 @@ export function setupGUI(onChangeCallback) {
     
     // 레이아웃 컨트롤
     const layoutFolder = gui.addFolder('Layout');
-    layoutFolder.add(options, 'barWidth', 8, 80, 1).name('Bar Width').onChange(onChangeCallback);
-    layoutFolder.add(options, 'barHeight', 20, 200, 1).name('Bar Height').onChange(onChangeCallback);
-    layoutFolder.add(options, 'barGapX', 0, 20, 1).name('Bar Gap X').onChange(onChangeCallback);
-    layoutFolder.add(options, 'barGapY', 0, 20, 1).name('Bar Gap Y').onChange(onChangeCallback);
+    layoutFolder.add(options, 'barWidth', 1, 2048, 1).name('Bar Width').onChange(onChangeCallback);
+    layoutFolder.add(options, 'barHeight', 1, 2048, 1).name('Bar Height').onChange(onChangeCallback);
+    layoutFolder.add(options, 'barGapX', -2048, 2048, 1).name('Bar Gap X').onChange(onChangeCallback);
+    layoutFolder.add(options, 'barGapY', -2048, 2048, 1).name('Bar Gap Y').onChange(onChangeCallback);
     layoutFolder.add(options, 'maxNumBarPerGroup', 1, 30, 1).name('Group Count').onChange(onChangeCallback);
     layoutFolder.open();
     
