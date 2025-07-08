@@ -38,6 +38,9 @@ const DEFAULT_OPTIONS = {
     // 배경 설정
     backgroundColor: '#ffffff',
     
+    // 행별 오프셋 설정 (동적으로 생성됨)
+    rowOffsets: [],
+    
     // 선 색상 설정 (막대 위에 그려지는 선들)
     lineColor1: '#e63946',  // 막대 높이의 15% 지점 - 빨간색
     lineColor2: '#457b9d',  // 막대 높이의 30% 지점 - 파란색
@@ -187,6 +190,31 @@ export function resetOptions() {
     }
 }
 
+// 행별 오프셋 관리 함수들
+export function initializeRowOffsets(rowCount) {
+    // 기존 오프셋보다 더 많은 행이 필요한 경우에만 확장
+    while (options.rowOffsets.length < rowCount) {
+        options.rowOffsets.push({ x: 0, y: 0 });
+    }
+    // 불필요한 오프셋 제거
+    if (options.rowOffsets.length > rowCount) {
+        options.rowOffsets = options.rowOffsets.slice(0, rowCount);
+    }
+}
+
+export function getRowOffset(rowIndex) {
+    if (rowIndex < 0 || rowIndex >= options.rowOffsets.length) {
+        return { x: 0, y: 0 };
+    }
+    return options.rowOffsets[rowIndex];
+}
+
+export function setRowOffset(rowIndex, offsetX, offsetY) {
+    if (rowIndex >= 0 && rowIndex < options.rowOffsets.length) {
+        options.rowOffsets[rowIndex] = { x: offsetX, y: offsetY };
+    }
+}
+
 // 색상 설정 저장 함수
 export function saveColorSettings() {
     const colorSettings = {
@@ -218,6 +246,9 @@ export function updateBackgroundColor(color) {
         window.updateBackgroundColor(color);
     }
 }
+
+// 행별 오프셋 업데이트 함수를 저장할 변수
+let updateRowOffsetControlsFunction = null;
 
 // dat.GUI 설정 함수
 export function setupGUI(onChangeCallback) {
@@ -434,10 +465,19 @@ export function setupGUI(onChangeCallback) {
     
     // 레이아웃 컨트롤
     const layoutFolder = gui.addFolder('Layout');
-    layoutFolder.add(options, 'barWidth', 1, 2048, 1).name('Bar Width').onChange(onChangeCallback);
-    layoutFolder.add(options, 'barHeight', 1, 2048, 1).name('Bar Height').onChange(onChangeCallback);
+    layoutFolder.add(options, 'barWidth', 1, 2048, 1).name('Bar Width').onChange((value) => {
+        onChangeCallback();
+        updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
+    });
+    layoutFolder.add(options, 'barHeight', 1, 2048, 1).name('Bar Height').onChange((value) => {
+        onChangeCallback();
+        updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
+    });
     layoutFolder.add(options, 'barGapX', -2048, 2048, 1).name('Bar Gap X').onChange(onChangeCallback);
-    layoutFolder.add(options, 'barGapY', -2048, 2048, 1).name('Bar Gap Y').onChange(onChangeCallback);
+    layoutFolder.add(options, 'barGapY', -2048, 2048, 1).name('Bar Gap Y').onChange((value) => {
+        onChangeCallback();
+        updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
+    });
     layoutFolder.add(options, 'maxNumBarPerGroup', 1, 30, 1).name('Group Count').onChange(onChangeCallback);
     layoutFolder.open();
     
@@ -445,8 +485,14 @@ export function setupGUI(onChangeCallback) {
     const marginFolder = gui.addFolder('Margins');
     marginFolder.add(options, 'marginLeft', 0, 500, 1).name('Left Margin').onChange(onChangeCallback);
     marginFolder.add(options, 'marginRight', 0, 500, 1).name('Right Margin').onChange(onChangeCallback);
-    marginFolder.add(options, 'marginTop', 0, 500, 1).name('Top Margin').onChange(onChangeCallback);
-    marginFolder.add(options, 'marginBottom', 0, 500, 1).name('Bottom Margin').onChange(onChangeCallback);
+    marginFolder.add(options, 'marginTop', 0, 500, 1).name('Top Margin').onChange((value) => {
+        onChangeCallback();
+        updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
+    });
+    marginFolder.add(options, 'marginBottom', 0, 500, 1).name('Bottom Margin').onChange((value) => {
+        onChangeCallback();
+        updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
+    });
     marginFolder.open();
     
     // 선 효과 컨트롤
@@ -485,14 +531,87 @@ export function setupGUI(onChangeCallback) {
     blankingFolder.add(blankingControls, 'randomizeBlanking').name('Randomize Pattern');
     blankingFolder.open();
     
-    // 리셋 버튼 추가
-    const resetButton = { reset: () => {
-        resetOptions();
-        onChangeCallback();
-        // GUI 컨트롤 업데이트
-        gui.controllers.forEach(controller => {
-            controller.updateDisplay();
+    // 행별 오프셋 컨트롤을 동적으로 생성하는 함수
+    let rowOffsetFolder;
+    let rowOffsetControllers = [];
+    function updateRowOffsetControls() {
+        // 기존 컨트롤러들을 제거
+        rowOffsetControllers.forEach(controller => {
+            if (rowOffsetFolder && controller) {
+                try {
+                    rowOffsetFolder.remove(controller);
+                } catch (e) {
+                    // 제거 실패 시 무시
+                }
+            }
         });
-    }};
+        rowOffsetControllers = [];
+        
+        // 기존 폴더가 없으면 생성
+        if (!rowOffsetFolder) {
+            rowOffsetFolder = gui.addFolder('Row Offsets');
+            rowOffsetFolder.open();
+        }
+        
+        // 현재 행 수 계산 (main.js의 calculateGrid 로직과 동일)
+        const canvas = document.getElementById('art');
+        if (!canvas) return;
+        
+        const { barHeight, barGapY, marginTop, marginBottom } = options;
+        const rows = Math.floor((canvas.height - marginTop - marginBottom) / (barHeight + barGapY));
+        
+        // 행별 오프셋 초기화
+        initializeRowOffsets(rows);
+        
+        // 각 행별로 X, Y 오프셋 컨트롤 생성
+        for (let i = 0; i < rows; i++) {
+            const rowControls = {
+                [`row${i}X`]: options.rowOffsets[i].x,
+                [`row${i}Y`]: options.rowOffsets[i].y
+            };
+            
+            const xController = rowOffsetFolder.add(rowControls, `row${i}X`, -200, 200, 1).name(`Row ${i} X`).onChange((value) => {
+                setRowOffset(i, value, options.rowOffsets[i].y);
+                onChangeCallback();
+            });
+            
+            const yController = rowOffsetFolder.add(rowControls, `row${i}Y`, -200, 200, 1).name(`Row ${i} Y`).onChange((value) => {
+                setRowOffset(i, options.rowOffsets[i].x, value);
+                onChangeCallback();
+            });
+            
+            rowOffsetControllers.push(xController, yController);
+        }
+    }
+    
+    // 초기 행별 오프셋 컨트롤 생성
+    updateRowOffsetControls();
+    
+    // 외부에서 접근할 수 있도록 함수 저장
+    updateRowOffsetControlsFunction = updateRowOffsetControls;
+    
+    // 리셋 버튼에 행별 오프셋 컨트롤 업데이트 기능 추가
+    const resetButton = { 
+        reset: () => {
+            resetOptions();
+            updateRowOffsetControls(); // 행별 오프셋 컨트롤도 재생성
+            onChangeCallback();
+            // GUI 컨트롤 업데이트
+            gui.controllers.forEach(controller => {
+                controller.updateDisplay();
+            });
+        },
+        updateRowOffsets: () => {
+            updateRowOffsetControls();
+        }
+    };
     gui.add(resetButton, 'reset').name('Reset to Defaults');
+    gui.add(resetButton, 'updateRowOffsets').name('Update Row Controls');
+}
+
+// 행별 오프셋 컨트롤 업데이트 함수를 외부에서 호출할 수 있도록 export
+export function updateRowOffsetControls() {
+    if (updateRowOffsetControlsFunction) {
+        updateRowOffsetControlsFunction();
+    }
 } 

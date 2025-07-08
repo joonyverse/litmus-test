@@ -1,6 +1,6 @@
 // 메인 애플리케이션 로직
 import { randChoice, perturbColor, resizeCanvasToWindow, CanvasUtils, LayerManager } from './utils/index.js';
-import { options, palettes, setupGUI, saveColorSettings } from './config.js';
+import { options, palettes, setupGUI, saveColorSettings, getRowOffset, updateRowOffsetControls } from './config.js';
 import { WatercolorBar, WatercolorLine } from './classes/index.js';
 import { drawNoiseOverlay } from './effects.js';
 
@@ -146,9 +146,14 @@ function calculateBarPosition(col, row, grid) {
     // 결정적 랜덤을 위한 시드
     const positionSeed = col * 1000 + row * 10000;
     
-    // 약간의 랜덤 오프셋 추가 (결정적)
-    const x = marginLeft + col * (barWidth + barGapX) + (seededRandom(positionSeed) - 0.5) * 4;
-    const y = marginTop + row * (barHeight + barGapY) + (seededRandom(positionSeed + 100) - 0.5) * 4;
+    // 기본 위치 계산
+    let x = marginLeft + col * (barWidth + barGapX) + (seededRandom(positionSeed) - 0.5) * 4;
+    let y = marginTop + row * (barHeight + barGapY) + (seededRandom(positionSeed + 100) - 0.5) * 4;
+    
+    // 행별 오프셋 적용
+    const rowOffset = getRowOffset(row);
+    x += rowOffset.x;
+    y += rowOffset.y;
     
     return { x, y };
 }
@@ -421,7 +426,11 @@ function updateBackgroundColor(color) {
 }
 
 // 이벤트 리스너 설정
-window.addEventListener('resize', drawPattern);
+window.addEventListener('resize', () => {
+    drawPattern();
+    // 창 크기 변경 시 행 수가 변경될 수 있으므로 행별 오프셋 컨트롤 업데이트
+    setTimeout(() => updateRowOffsetControls(), 100);
+});
 
 // GUI 설정
 setupGUI(drawPattern);
