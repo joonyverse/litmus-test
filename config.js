@@ -465,11 +465,19 @@ export function setupGUI(onChangeCallback) {
     
     // 레이아웃 컨트롤
     const layoutFolder = gui.addFolder('Layout');
-    layoutFolder.add(options, 'barWidth', 1, 2048, 1).name('Bar Width').onChange((value) => {
+    layoutFolder.add(options, 'barWidth', 1, 2048, 1).name('Bar Width 2048').onChange((value) => {
         onChangeCallback();
         updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
     });
-    layoutFolder.add(options, 'barHeight', 1, 2048, 1).name('Bar Height').onChange((value) => {
+    layoutFolder.add(options, 'barHeight', 1, 2048, 1).name('Bar Height 2048').onChange((value) => {
+        onChangeCallback();
+        updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
+    });
+        layoutFolder.add(options, 'barWidth', 1, 128, 1).name('Bar Width').onChange((value) => {
+        onChangeCallback();
+        updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
+    });
+    layoutFolder.add(options, 'barHeight', 1, 128, 1).name('Bar Height').onChange((value) => {
         onChangeCallback();
         updateRowOffsetControls(); // 행 수가 변경될 수 있으므로 업데이트
     });
