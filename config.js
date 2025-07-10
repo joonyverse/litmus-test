@@ -309,24 +309,24 @@ export function setupGUI(onChangeCallback) {
         }
     };
     
-    backgroundFolder.addColor(lineColorControls, 'lineColor1').name('Line Color 1').onChange((color) => {
-        lineColorControls.setBarColor1(color);
-    });
-    backgroundFolder.addColor(lineColorControls, 'lineColor2').name('Line Color 2').onChange((color) => {
-        lineColorControls.setBarColor2(color);
-    });
-    backgroundFolder.addColor(lineColorControls, 'lineColor3').name('Line Color 3').onChange((color) => {
-        lineColorControls.setBarColor3(color);
-    });
-    backgroundFolder.addColor(lineColorControls, 'lineColor4').name('Line Color 4').onChange((color) => {
-        lineColorControls.setBarColor4(color);
-    });
-    backgroundFolder.addColor(lineColorControls, 'lineColor5').name('Line Color 5').onChange((color) => {
-        lineColorControls.setBarColor5(color);
-    });
-    backgroundFolder.addColor(lineColorControls, 'lineColor6').name('Line Color 6').onChange((color) => {
-        lineColorControls.setBarColor6(color);
-    });
+    //backgroundFolder.addColor(lineColorControls, 'lineColor1').name('Line Color 1').onChange((color) => {
+    //    lineColorControls.setBarColor1(color);
+    //});
+    //backgroundFolder.addColor(lineColorControls, 'lineColor2').name('Line Color 2').onChange((color) => {
+     //   lineColorControls.setBarColor2(color);
+    //});
+   // backgroundFolder.addColor(lineColorControls, 'lineColor3').name('Line Color 3').onChange((color) => {
+ //       lineColorControls.setBarColor3(color);
+   // });
+  //  backgroundFolder.addColor(lineColorControls, 'lineColor4').name('Line Color 4').onChange((color) => {
+ //       lineColorControls.setBarColor4(color);
+//    });
+ //   backgroundFolder.addColor(lineColorControls, 'lineColor5').name('Line Color 5').onChange((color) => {
+ //       lineColorControls.setBarColor5(color);
+//    });
+//    backgroundFolder.addColor(lineColorControls, 'lineColor6').name('Line Color 6').onChange((color) => {
+//        lineColorControls.setBarColor6(color);
+//    });
     
     // 막대 색상 컨트롤 (WatercolorBar 색상)
     const barColorControls = {
