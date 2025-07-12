@@ -528,8 +528,8 @@
                         for (let i = 0; i < landmarks.length; i++) {
                             const landmark = landmarks[i];
                             if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
-                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환
-                                const x = landmark.x * this.canvas.width;
+                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환 (거울 효과 반영)
+                                const x = (1 - landmark.x) * this.canvas.width; // X 좌표 반전
                                 const y = landmark.y * this.canvas.height;
 
                                 // 정상 범위 체크 후 그리기 (MediaPipe 좌표값은 0~1)
@@ -547,8 +547,8 @@
                         for (const index of mouthIndices) {
                             const landmark = landmarks[index];
                             if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
-                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환
-                                const x = landmark.x * this.canvas.width;
+                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환 (거울 효과 반영)
+                                const x = (1 - landmark.x) * this.canvas.width; // X 좌표 반전
                                 const y = landmark.y * this.canvas.height;
 
                                 this.ctx.beginPath();
