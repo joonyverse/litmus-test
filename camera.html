@@ -116,11 +116,11 @@
             <button id="connect-with-code" style="margin-left: 10px;">연결</button>
         </div>
 
-        <div style="position: relative;">
+        <div style="position: relative; display: inline-block;">
             <video id="video" autoplay muted playsinline
-                style="width: 100%; max-width: 400px; border-radius: 10px;"></video>
+                style="width: 100%; max-width: 400px; border-radius: 10px; display: block;"></video>
             <canvas id="output"
-                style="position: absolute; left: 0; top: 0; pointer-events: none; width: 100%; max-width: 400px; border-radius: 10px;"></canvas>
+                style="position: absolute; left: 0; top: 0; pointer-events: none; border-radius: 10px;"></canvas>
         </div>
 
         <div id="status" class="status-connecting">연결 중...</div>
@@ -500,24 +500,23 @@
             }
 
             drawLandmarks(results) {
-                // 비디오의 실제 표시 크기 계산
+                // 비디오의 실제 표시 크기 계산 (더 정확하게)
                 const videoRect = this.video.getBoundingClientRect();
+                const videoStyle = window.getComputedStyle(this.video);
 
-                // 캔버스 크기를 비디오 표시 크기에 맞춤
-                this.canvas.width = videoRect.width;
-                this.canvas.height = videoRect.height;
+                // border-radius 등 CSS 효과를 고려한 실제 크기 계산
+                const actualWidth = videoRect.width;
+                const actualHeight = videoRect.height;
 
-                // 디버깅용 로그 (너무 자주 출력되지 않도록)
-                if (this.frameCount % 30 === 0) {
-                    console.log('📐 캔버스 크기 조정:', {
-                        videoWidth: this.video.videoWidth,
-                        videoHeight: this.video.videoHeight,
-                        displayWidth: videoRect.width,
-                        displayHeight: videoRect.height,
-                        canvasWidth: this.canvas.width,
-                        canvasHeight: this.canvas.height
-                    });
-                }
+                // 캔버스 크기를 비디오 표시 크기에 정확히 맞춤
+                this.canvas.width = actualWidth;
+                this.canvas.height = actualHeight;
+
+                // 캔버스 위치도 비디오와 정확히 맞춤
+                this.canvas.style.left = '0px';
+                this.canvas.style.top = '0px';
+                this.canvas.style.width = actualWidth + 'px';
+                this.canvas.style.height = actualHeight + 'px';
 
                 // 캔버스 지우기
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
