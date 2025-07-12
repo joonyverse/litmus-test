@@ -4,6 +4,9 @@ import { options, palettes, setupGUI, saveColorSettings, getRowOffset, updateRow
 import { WatercolorBar, WatercolorLine } from './classes/index.js';
 import { drawNoiseOverlay } from './effects.js';
 
+// options 객체를 전역으로 노출 (camera-controller에서 접근할 수 있도록)
+window.options = options;
+
 // 결정적 랜덤 함수 (시드 기반)
 function seededRandom(seed) {
     const x = Math.sin(seed) * 10000;

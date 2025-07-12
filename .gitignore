@@ -1,0 +1,12 @@
+# 배포에 불필요한 파일들
+node_modules/
+.DS_Store
+*.log
+server.js
+https-server.js
+websocket-server.js
+firebase-client.js
+
+# 개발용 파일들
+.vscode/
+.idea/

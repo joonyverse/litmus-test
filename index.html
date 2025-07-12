@@ -1,12 +1,50 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Litmus Test</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
 </head>
+
 <body>
     <canvas id="art"></canvas>
+
+    <!-- 카메라 연결 UI -->
+    <div id="camera-connection"
+        style="position: fixed; top: 20px; right: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 250px;">
+        <h3 style="margin: 0 0 10px 0; font-size: 14px;">스마트폰 카메라 연결</h3>
+        <button id="connect-camera-btn"
+            style="width: 100%; padding: 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">카메라
+            연결하기</button>
+        <div id="qr-code-container" style="display: none; margin-top: 10px; text-align: center;">
+            <p style="font-size: 12px; margin: 5px 0;">스마트폰으로 QR 코드 스캔:</p>
+            <div id="qr-code"></div>
+            <p id="connection-status" style="font-size: 11px; color: #666; margin: 5px 0;">연결 대기중...</p>
+        </div>
+        <div id="camera-connected" style="display: none; color: #4CAF50; font-size: 12px; text-align: center;">
+            📱 카메라 연결됨!<br>
+            <span style="font-size: 10px;">웃으면 선 색상이 파란색으로 변합니다</span>
+        </div>
+    </div>
+
     <script type="module" src="main.js"></script>
+    <script>
+        // QRCode 라이브러리 없이도 작동하도록 수정
+        function loadCameraController() {
+            console.log('카메라 컨트롤러 로딩 시작');
+            import('./camera-controller.js').then(() => {
+                console.log('카메라 컨트롤러 로드 완료');
+            }).catch(error => {
+                console.error('카메라 컨트롤러 로드 실패:', error);
+            });
+        }
+
+        // 페이지 로드 후 바로 시작 (QRCode 라이브러리 의존성 제거)
+        window.addEventListener('load', loadCameraController);
+    </script>
 </body>
-</html> 
+
+</html>

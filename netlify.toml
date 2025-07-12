@@ -1,0 +1,18 @@
+[build]
+  publish = "."
+
+# 카메라 접근을 위한 HTTPS 헤더
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Permissions-Policy = "camera=*, microphone=*"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# SPA 라우팅 (선택사항)
+[[redirects]]
+  from = "/camera"
+  to = "/camera.html"
+  status = 200

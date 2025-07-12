@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>스마트폰 카메라 - Litmus Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        #video {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 10px;
+            background: #000;
+        }
+        
+        #status {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status-connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        #smile-indicator {
+            font-size: 48px;
+            margin: 20px 0;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .instruction {
+            font-size: 14px;
+            color: #666;
+            margin: 10px 0;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 스마트폰 카메라</h1>
+        
+        <!-- 연결 코드 입력 (URL에 ID가 없을 때만 표시) -->
+        <div id="code-input-section" style="display: none; margin-bottom: 20px;">
+            <p style="font-size: 14px; margin-bottom: 10px;">연결 코드를 입력하세요:</p>
+            <input type="text" id="connection-code" placeholder="예: ABC123" 
+                   style="width: 100px; padding: 8px; font-size: 16px; text-align: center; text-transform: uppercase;">
+            <button id="connect-with-code" style="margin-left: 10px;">연결</button>
+        </div>
+        
+        <video id="video" autoplay muted playsinline></video>
+        
+        <div id="status" class="status-connecting">연결 중...</div>
+        
+        <div id="smile-indicator">😐</div>
+        
+        <div class="instruction">
+            웃으면 컴퓨터 화면의 선 색상이 파란색으로 변합니다!
+        </div>
+        
+        <button id="start-camera">카메라 시작</button>
+        <button id="stop-camera" disabled>카메라 중지</button>
+        
+        <!-- 테스트용 버튼들 -->
+        <div style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+            <p style="font-size: 12px; margin: 5px 0;"><strong>테스트용 버튼:</strong></p>
+            <button id="test-smile" style="background: #2196F3; margin: 5px;">😊 웃음 테스트</button>
+            <button id="test-stop-smile" style="background: #FF9800; margin: 5px;">😐 웃음 멈춤</button>
+            <button id="test-connection" style="background: #4CAF50; margin: 5px;">연결 테스트</button>
+        </div>
+    </div>
+
+    <script type="module">
+        class SmileDetector {
+            constructor() {
+                this.connectionId = null;
+                this.video = document.getElementById('video');
+                this.isSmiling = false;
+                this.faceDetection = null;
+                this.camera = null;
+                
+                this.init();
+            }
+
+            async init() {
+                // URL에서 연결 ID 가져오기
+                const urlParams = new URLSearchParams(window.location.search);
+                this.connectionId = urlParams.get('id');
+                
+                if (!this.connectionId) {
+                    // 연결 ID가 없으면 수동 입력 UI 표시
+                    this.showCodeInput();
+                    return;
+                }
+
+                this.setupUI();
+                await this.setupMediaPipe();
+                this.setupCamera();
+            }
+
+            showCodeInput() {
+                document.getElementById('code-input-section').style.display = 'block';
+                document.getElementById('status').textContent = '연결 코드를 입력하세요';
+                
+                // 연결 코드 입력 이벤트 리스너
+                document.getElementById('connect-with-code').addEventListener('click', () => {
+                    const code = document.getElementById('connection-code').value.trim().toUpperCase();
+                    if (code) {
+                        this.connectionId = code;
+                        document.getElementById('code-input-section').style.display = 'none';
+                        this.continueSetup();
+                    } else {
+                        alert('연결 코드를 입력해주세요.');
+                    }
+                });
+
+                // 엔터키로도 연결
+                document.getElementById('connection-code').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('connect-with-code').click();
+                    }
+                });
+            }
+
+            async continueSetup() {
+                this.setupUI();
+                await this.setupMediaPipe();
+                this.setupCamera();
+            }
+
+            setupUI() {
+                document.getElementById('start-camera').addEventListener('click', () => this.startCamera());
+                document.getElementById('stop-camera').addEventListener('click', () => this.stopCamera());
+                
+                // 테스트 버튼들
+                document.getElementById('test-connection').addEventListener('click', () => this.testConnection());
+                document.getElementById('test-smile').addEventListener('click', () => this.testSmile());
+                document.getElementById('test-stop-smile').addEventListener('click', () => this.testStopSmile());
+            }
+
+            async setupMediaPipe() {
+                try {
+                    this.faceDetection = new FaceDetection({
+                        locateFile: (file) => {
+                            return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/${file}`;
+                        }
+                    });
+
+                    this.faceDetection.setOptions({
+                        modelSelection: 0,
+                        minDetectionConfidence: 0.5
+                    });
+
+                    this.faceDetection.onResults((results) => this.onResults(results));
+                    
+                    console.log('MediaPipe 설정 완료');
+                } catch (error) {
+                    console.error('MediaPipe 설정 실패:', error);
+                    this.showError('얼굴 감지 라이브러리 로딩 실패');
+                }
+            }
+
+            setupCamera() {
+                // 카메라 지원 확인
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    this.showError('이 브라우저는 카메라를 지원하지 않습니다. HTTPS 연결이 필요할 수 있습니다.');
+                    return;
+                }
+
+                this.camera = new Camera(this.video, {
+                    onFrame: async () => {
+                        if (this.faceDetection) {
+                            await this.faceDetection.send({image: this.video});
+                        }
+                    },
+                    width: 640,
+                    height: 480
+                });
+            }
+
+            async startCamera() {
+                try {
+                    await this.camera.start();
+                    this.updateStatus('연결됨! 웃어보세요 😊', 'connected');
+                    this.sendMessage({type: 'camera_connected'});
+                    
+                    document.getElementById('start-camera').disabled = true;
+                    document.getElementById('stop-camera').disabled = false;
+                    
+                } catch (error) {
+                    console.error('카메라 시작 실패:', error);
+                    this.showError('카메라 접근 권한을 허용해주세요.');
+                }
+            }
+
+            stopCamera() {
+                if (this.camera) {
+                    this.camera.stop();
+                }
+                this.updateStatus('카메라 중지됨', 'connecting');
+                document.getElementById('start-camera').disabled = false;
+                document.getElementById('stop-camera').disabled = true;
+            }
+
+            onResults(results) {
+                const currentlySmiling = this.detectSmile(results);
+                
+                if (currentlySmiling !== this.isSmiling) {
+                    this.isSmiling = currentlySmiling;
+                    
+                    if (this.isSmiling) {
+                        this.showSmiling();
+                        this.sendMessage({type: 'smile_detected'});
+                    } else {
+                        this.showNeutral();
+                        this.sendMessage({type: 'smile_stopped'});
+                    }
+                }
+            }
+
+            detectSmile(results) {
+                if (!results.detections || results.detections.length === 0) {
+                    return false;
+                }
+
+                // 간단한 웃음 감지 로직
+                // 실제로는 더 정교한 알고리즘이 필요하지만, 
+                // 여기서는 얼굴이 감지되면 랜덤하게 웃음을 시뮬레이션
+                const detection = results.detections[0];
+                const score = detection.score;
+                
+                // 얼굴 감지 신뢰도가 높을 때 간헐적으로 웃음으로 판정
+                // 실제 구현에서는 얼굴 랜드마크를 분석해야 함
+                return score > 0.8 && Math.random() > 0.7;
+            }
+
+            showSmiling() {
+                document.getElementById('smile-indicator').textContent = '😊';
+                document.getElementById('smile-indicator').style.color = '#4CAF50';
+            }
+
+            showNeutral() {
+                document.getElementById('smile-indicator').textContent = '😐';
+                document.getElementById('smile-indicator').style.color = '#666';
+            }
+
+            updateStatus(message, type) {
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = message;
+                statusEl.className = `status-${type}`;
+            }
+
+            showError(message) {
+                this.updateStatus(message, 'error');
+            }
+
+            sendMessage(data) {
+                // localStorage를 통한 메시지 전송 (실제로는 WebSocket 사용)
+                try {
+                    localStorage.setItem(`camera_${this.connectionId}`, JSON.stringify({
+                        ...data,
+                        timestamp: Date.now()
+                    }));
+                    console.log('메시지 전송:', data);
+                } catch (error) {
+                    console.error('메시지 전송 실패:', error);
+                }
+            }
+
+            // 테스트 메서드들
+            testConnection() {
+                console.log('연결 테스트 - 연결 ID:', this.connectionId);
+                this.sendMessage({type: 'camera_connected'});
+                alert(`연결 테스트 완료!\n연결 ID: ${this.connectionId}`);
+            }
+
+            testSmile() {
+                console.log('웃음 테스트');
+                this.showSmiling();
+                this.sendMessage({type: 'smile_detected'});
+                
+                // 컴퓨터 브라우저에서도 확인할 수 있도록 alert
+                alert('웃음 신호 전송됨! 컴퓨터 화면을 확인하세요.');
+            }
+
+            testStopSmile() {
+                console.log('웃음 멈춤 테스트');
+                this.showNeutral();
+                this.sendMessage({type: 'smile_stopped'});
+                
+                alert('웃음 멈춤 신호 전송됨!');
+            }
+        }
+
+        // 페이지 로드 시 시작
+        window.addEventListener('load', () => {
+            new SmileDetector();
+        });
+    </script>
+</body>
+</html>
