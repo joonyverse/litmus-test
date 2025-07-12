@@ -114,7 +114,10 @@
             <button id="connect-with-code" style="margin-left: 10px;">연결</button>
         </div>
         
-        <video id="video" autoplay muted playsinline></video>
+        <div style="position: relative;">
+            <video id="video" autoplay muted playsinline style="transform: scaleX(-1);"></video>
+            <canvas id="output" style="position: absolute; left: 0; top: 0; transform: scaleX(-1);"></canvas>
+        </div>
         
         <div id="status" class="status-connecting">연결 중...</div>
         
@@ -256,6 +259,8 @@
             constructor() {
                 this.connectionId = null;
                 this.video = document.getElementById('video');
+                this.canvas = document.getElementById('output');
+                this.ctx = this.canvas.getContext('2d');
                 this.isSmiling = false;
                 this.faceMesh = null;
                 this.camera = null;
@@ -469,6 +474,10 @@
                 // 모든 프레임 로그 출력 복원
                 this.frameCount = (this.frameCount || 0) + 1;
                 console.log(`🎥 프레임 ${this.frameCount} - onResults 호출됨`);
+                
+                // 랜드마크 시각화
+                this.drawLandmarks(results);
+                
                 const smileResult = this.detectSmile(results);
                 
                 // detectSmile이 null을 리턴하면 계산 오류 - 강제로 웃음 멈춤 처리
@@ -500,6 +509,57 @@
                 document.getElementById('face-status').textContent = `얼굴 감지: ${status}`;
                 document.getElementById('mouth-data').textContent = `입 데이터: ${mouthData || '데이터 없음'}`;
                 document.getElementById('smile-result').textContent = `웃음 감지: ${smileResult || '판정 없음'}`;
+            }
+            
+            drawLandmarks(results) {
+                // 캔버스 크기를 비디오에 맞춤
+                this.canvas.width = this.video.videoWidth;
+                this.canvas.height = this.video.videoHeight;
+                
+                // 캔버스 지우기
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (results.multiFaceLandmarks) {
+                    for (const landmarks of results.multiFaceLandmarks) {
+                        // 모든 랜드마크 그리기 (작은 점들)
+                        this.ctx.fillStyle = '#00FF00'; // 초록색
+                        for (let i = 0; i < landmarks.length; i++) {
+                            const landmark = landmarks[i];
+                            if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
+                                const x = landmark.x * this.canvas.width;
+                                const y = landmark.y * this.canvas.height;
+                                
+                                // 정상 범위 체크 후 그리기
+                                if (Math.abs(landmark.x) < 10 && Math.abs(landmark.y) < 10) {
+                                    this.ctx.beginPath();
+                                    this.ctx.arc(x, y, 1, 0, 2 * Math.PI);
+                                    this.ctx.fill();
+                                }
+                            }
+                        }
+                        
+                        // 입 관련 랜드마크 강조 (우리가 사용하는 0,1,2,3번)
+                        this.ctx.fillStyle = '#FF0000'; // 빨간색
+                        const mouthIndices = [0, 1, 2, 3];
+                        for (const index of mouthIndices) {
+                            const landmark = landmarks[index];
+                            if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
+                                const x = landmark.x * this.canvas.width;
+                                const y = landmark.y * this.canvas.height;
+                                
+                                this.ctx.beginPath();
+                                this.ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                                this.ctx.fill();
+                                
+                                // 좌표값 텍스트로 표시
+                                this.ctx.fillStyle = '#FFFFFF';
+                                this.ctx.font = '10px Arial';
+                                this.ctx.fillText(`${index}:(${landmark.x.toFixed(2)},${landmark.y.toFixed(2)})`, x + 5, y - 5);
+                                this.ctx.fillStyle = '#FF0000';
+                            }
+                        }
+                    }
+                }
             }
 
             detectSmile(results) {
