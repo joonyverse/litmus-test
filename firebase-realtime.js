@@ -6,15 +6,15 @@ class FirebaseRealtime {
         this.messageCallback = null;
         this.isInitialized = false;
         
-        // 데모용 Firebase 설정 (실제로는 본인 프로젝트 설정 필요)
+        // Firebase 설정
         this.firebaseConfig = {
-            apiKey: "AIzaSyDemoKey123456789",
-            authDomain: "litmus-test-demo.firebaseapp.com",
-            databaseURL: "https://litmus-test-demo-default-rtdb.firebaseio.com",
-            projectId: "litmus-test-demo",
-            storageBucket: "litmus-test-demo.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abc123def456"
+            apiKey: "AIzaSyDcKY0kO8gqzj2t118Nv6EXA6RVc_p5sHA",
+            authDomain: "litmus-test-5b231.firebaseapp.com",
+            databaseURL: "https://litmus-test-5b231-default-rtdb.firebaseio.com",
+            projectId: "litmus-test-5b231",
+            storageBucket: "litmus-test-5b231.firebasestorage.app",
+            messagingSenderId: "839883886547",
+            appId: "1:839883886547:web:dcc363f296c7ca87c4a926"
         };
         
         this.init();
@@ -26,10 +26,14 @@ class FirebaseRealtime {
             if (typeof firebase !== 'undefined') {
                 if (!firebase.apps.length) {
                     firebase.initializeApp(this.firebaseConfig);
+                    console.log('Firebase 앱 초기화 완료');
                 }
                 this.db = firebase.database();
                 this.isInitialized = true;
-                console.log('Firebase 연결 성공');
+                console.log('🔥 Firebase Realtime Database 연결 성공!');
+                
+                // 연결 테스트
+                this.testConnection();
             } else {
                 console.warn('Firebase SDK 로드 실패, localStorage 폴백 사용');
                 this.useFallback();
@@ -38,6 +42,21 @@ class FirebaseRealtime {
             console.warn('Firebase 초기화 실패:', error.message);
             this.useFallback();
         }
+    }
+
+    testConnection() {
+        // Firebase 연결 테스트
+        const testRef = this.db.ref('test');
+        testRef.set({
+            message: 'Firebase 연결 테스트',
+            timestamp: Date.now()
+        }).then(() => {
+            console.log('✅ Firebase 쓰기 테스트 성공');
+            testRef.remove(); // 테스트 데이터 삭제
+        }).catch((error) => {
+            console.warn('❌ Firebase 쓰기 테스트 실패:', error);
+            this.useFallback();
+        });
     }
 
     useFallback() {
