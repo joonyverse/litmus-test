@@ -123,6 +123,15 @@
             웃으면 컴퓨터 화면의 선 색상이 파란색으로 변합니다!
         </div>
         
+        <!-- 디버깅 정보 표시 영역 -->
+        <div id="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 11px; font-family: monospace; text-align: left;">
+            <div><strong>🔍 실시간 디버깅:</strong></div>
+            <div id="face-status">얼굴 감지: 대기 중...</div>
+            <div id="mouth-data">입 데이터: -</div>
+            <div id="smile-result">웃음 감지: -</div>
+            <div id="firebase-status">Firebase: -</div>
+        </div>
+        
         <button id="start-camera">카메라 시작</button>
         <button id="stop-camera" disabled>카메라 중지</button>
         
@@ -250,6 +259,7 @@
                     // 자동으로 연결 메시지 전송
                     console.log('📡 자동 연결 메시지 전송');
                     this.sendMessage({type: 'camera_connected'});
+                    document.getElementById('firebase-status').textContent = 'Firebase: ✅ 연결됨';
                 } else {
                     console.error('❌ window.firebaseRealtime이 없음');
                 }
@@ -351,13 +361,19 @@
                 }
             }
 
+            updateDebugInfo(status, mouthData = '', smileResult = '') {
+                document.getElementById('face-status').textContent = `얼굴 감지: ${status}`;
+                if (mouthData) document.getElementById('mouth-data').textContent = `입 데이터: ${mouthData}`;
+                if (smileResult) document.getElementById('smile-result').textContent = `웃음 감지: ${smileResult}`;
+            }
+
             detectSmile(results) {
                 if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                    console.log('❌ 얼굴 랜드마크 없음');
+                    this.updateDebugInfo('❌ 얼굴 없음');
                     return false;
                 }
                 
-                console.log('✅ 얼굴 랜드마크 감지됨, 포인트 수:', results.multiFaceLandmarks[0].length);
+                this.updateDebugInfo(`✅ 감지됨 (${results.multiFaceLandmarks[0].length}개 포인트)`);
 
                 const landmarks = results.multiFaceLandmarks[0];
                 
@@ -399,21 +415,16 @@
                 // 🧪 임시 테스트 모드: 입이 조금이라도 열려있으면 웃음으로 판정
                 const tempTestMode = mouthHeight > 0.01; // 매우 관대한 조건
                 
-                // 매 10프레임마다 로그 출력 (너무 많은 로그 방지)
-                if (Math.random() < 0.1) {
-                    console.log('😊 웃음 감지 상세:', {
-                        leftMouth: `(${leftMouth.x.toFixed(3)}, ${leftMouth.y.toFixed(3)})`,
-                        rightMouth: `(${rightMouth.x.toFixed(3)}, ${rightMouth.y.toFixed(3)})`,
-                        mouthWidth: mouthWidth.toFixed(3),
-                        mouthHeight: mouthHeight.toFixed(3),
-                        smileRatio: smileRatio.toFixed(2),
-                        cornersRaised,
-                        isWideSmile,
-                        isSmiling,
-                        tempTestMode,
-                        FINAL: (finalSmile || tempTestMode) ? '😊 웃음!' : '😐 평상시'
-                    });
-                }
+                // 실시간으로 화면에 표시
+                const mouthInfo = `가로:${mouthWidth.toFixed(3)} 세로:${mouthHeight.toFixed(3)} 비율:${smileRatio.toFixed(1)}`;
+                const smileInfo = `넓음:${isWideSmile} 올림:${cornersRaised} 테스트:${tempTestMode}`;
+                const finalResult = (finalSmile || tempTestMode) ? '😊 웃음 감지!' : '😐 평상시';
+                
+                this.updateDebugInfo(
+                    `✅ 감지됨 (${results.multiFaceLandmarks[0].length}개)`,
+                    mouthInfo,
+                    `${finalResult} (${smileInfo})`
+                );
                 
                 // 테스트 모드도 포함해서 판정
                 return finalSmile || tempTestMode;
