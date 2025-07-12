@@ -369,10 +369,10 @@
 
                     this.faceMesh.setOptions({
                         maxNumFaces: 1,
-                        refineLandmarks: true, // 다시 활성화
-                        minDetectionConfidence: 0.3, // 신뢰도 낮춤 (감지 쉽게)
-                        minTrackingConfidence: 0.3,
-                        staticImageMode: false
+                        refineLandmarks: true,
+                        minDetectionConfidence: 0.5,
+                        minTrackingConfidence: 0.5,
+                        staticImageMode: true // tracking 비활성화로 누적 방지
                     });
 
                     this.faceMesh.onResults((results) => this.onResults(results));
@@ -386,25 +386,39 @@
             
             async restartMediaPipe() {
                 try {
-                    console.log('🔄 MediaPipe Face Mesh 재시작 중...');
+                    console.log('🔄 MediaPipe + Camera 완전 재시작 중...');
+                    
+                    // 카메라도 완전히 정리
+                    if (this.camera) {
+                        console.log('📷 카메라 정리 중...');
+                        this.camera.stop();
+                        this.camera = null;
+                    }
                     
                     // 기존 Face Mesh 정리
                     if (this.faceMesh) {
+                        console.log('🔧 Face Mesh 정리 중...');
                         this.faceMesh.close();
                         this.faceMesh = null;
                     }
                     
-                    // 잠시 대기 (GPU 메모리 정리)
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // GPU 메모리 완전 정리 대기
+                    console.log('🧹 GPU 메모리 정리 대기...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                     
                     // Face Mesh 재생성
+                    console.log('🔧 Face Mesh 재생성...');
                     await this.setupFaceMesh();
                     
-                    console.log('✅ MediaPipe 재시작 완료');
-                    this.updateDebugInfo('🔄 MediaPipe 재시작됨', '대기 중...', '재시작 완료');
+                    // 카메라 재생성
+                    console.log('📷 카메라 재생성...');
+                    this.setupCamera();
+                    
+                    console.log('✅ 완전 재시작 완료');
+                    this.updateDebugInfo('🔄 완전 재시작됨', '대기 중...', '재시작 완료');
                     
                 } catch (error) {
-                    console.error('❌ MediaPipe 재시작 실패:', error);
+                    console.error('❌ 완전 재시작 실패:', error);
                     this.updateDebugInfo('❌ 재시작 실패', error.message, '오류');
                 }
             }
