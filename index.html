@@ -7,9 +7,9 @@
     <title>Litmus Test</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase SDK v8 (더 안정적) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 
 <body>
@@ -37,11 +37,42 @@
             <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>테스트용 (임시):</strong></p>
             <button id="test-blue" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">💙 파란색 변경</button>
             <button id="test-restore" style="background: #FF9800; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">🔄 원래 색상</button>
+            <br>
+            <button id="test-firebase" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">🔥 Firebase 테스트</button>
+            <div id="firebase-status" style="font-size: 10px; margin: 5px 0; color: #666;">Firebase 상태: 확인 중...</div>
         </div>
     </div>
 
     <script type="module" src="main.js"></script>
-    <script src="firebase-realtime.js"></script>
+    <script>
+        // Firebase 로딩 확인 후 firebase-realtime.js 로드
+        function waitForFirebase() {
+            if (typeof firebase !== 'undefined') {
+                console.log('✅ Firebase SDK 로드 완료');
+                loadFirebaseRealtime();
+            } else {
+                console.log('⏳ Firebase SDK 로딩 대기 중...');
+                setTimeout(waitForFirebase, 100);
+            }
+        }
+        
+        function loadFirebaseRealtime() {
+            const script = document.createElement('script');
+            script.src = 'firebase-realtime.js';
+            script.onload = () => {
+                console.log('✅ Firebase Realtime 클라이언트 로드 완료');
+                loadCameraController();
+            };
+            script.onerror = () => {
+                console.error('❌ Firebase Realtime 클라이언트 로드 실패');
+                loadCameraController(); // 실패해도 계속 진행
+            };
+            document.head.appendChild(script);
+        }
+        
+        // 페이지 로드 후 Firebase 확인 시작
+        window.addEventListener('load', waitForFirebase);
+    </script>
     <script>
         // QRCode 라이브러리 없이도 작동하도록 수정
         function loadCameraController() {
@@ -58,6 +89,8 @@
         function setupTestButtons() {
             const testBlueBtn = document.getElementById('test-blue');
             const testRestoreBtn = document.getElementById('test-restore');
+            const testFirebaseBtn = document.getElementById('test-firebase');
+            const firebaseStatus = document.getElementById('firebase-status');
             
             if (testBlueBtn && window.cameraController) {
                 testBlueBtn.addEventListener('click', () => {
@@ -72,6 +105,57 @@
                     window.cameraController.onSmileStopped();
                 });
             }
+            
+            if (testFirebaseBtn) {
+                testFirebaseBtn.addEventListener('click', () => {
+                    console.log('Firebase 연결 테스트 시작');
+                    testFirebaseConnection(firebaseStatus);
+                });
+            }
+            
+            // Firebase 상태 업데이트
+            updateFirebaseStatus(firebaseStatus);
+        }
+        
+        function testFirebaseConnection(statusElement) {
+            if (typeof firebase === 'undefined') {
+                statusElement.textContent = 'Firebase 상태: ❌ SDK 로드 실패';
+                statusElement.style.color = 'red';
+                return;
+            }
+            
+            if (window.firebaseRealtime && window.firebaseRealtime.db) {
+                statusElement.textContent = 'Firebase 상태: 🔥 연결됨 - 테스트 중...';
+                statusElement.style.color = 'green';
+                
+                // 실제 테스트 메시지 전송
+                window.firebaseRealtime.sendMessage({
+                    type: 'test_message',
+                    message: '테스트 메시지'
+                }, 'computer');
+                
+                setTimeout(() => {
+                    statusElement.textContent = 'Firebase 상태: ✅ 테스트 완료';
+                }, 2000);
+            } else {
+                statusElement.textContent = 'Firebase 상태: ⏳ 초기화 중...';
+                statusElement.style.color = 'orange';
+            }
+        }
+        
+        function updateFirebaseStatus(statusElement) {
+            setTimeout(() => {
+                if (typeof firebase === 'undefined') {
+                    statusElement.textContent = 'Firebase 상태: ❌ SDK 로드 실패';
+                    statusElement.style.color = 'red';
+                } else if (window.firebaseRealtime && window.firebaseRealtime.db) {
+                    statusElement.textContent = 'Firebase 상태: 🔥 연결됨';
+                    statusElement.style.color = 'green';
+                } else {
+                    statusElement.textContent = 'Firebase 상태: ⏳ 초기화 중...';
+                    statusElement.style.color = 'orange';
+                }
+            }, 2000);
         }
 
         // 페이지 로드 후 바로 시작 (QRCode 라이브러리 의존성 제거)
