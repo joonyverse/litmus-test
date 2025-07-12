@@ -377,16 +377,41 @@
 
                 const landmarks = results.multiFaceLandmarks[0];
                 
-                // 입꼴 관련 랜드마크 인덱스 (MediaPipe Face Mesh)
-                // 입 양끝점: 61, 291
-                // 입 윗부분 중앙: 13
-                // 입 아랫부분 중앙: 14
-                const leftMouth = landmarks[61];   // 입 왼쪽 끝
-                const rightMouth = landmarks[291]; // 입 오른쪽 끝
-                const upperMouth = landmarks[13];  // 입술 위 중앙
-                const lowerMouth = landmarks[14];  // 입술 아래 중앙
+                // MediaPipe Face Mesh 입 랜드마크 (다양한 인덱스 시도)
+                // 입 바깥쪽 코너: 61(왼쪽), 291(오른쪽)  
+                // 입술 중앙: 12(위), 15(아래)
+                // 대안: 78(왼쪽), 308(오른쪽), 13(위), 14(아래)
+                let leftMouth = landmarks[61];
+                let rightMouth = landmarks[291]; 
+                let upperMouth = landmarks[12];
+                let lowerMouth = landmarks[15];
+                
+                // 첫 번째 시도가 실패하면 대안 인덱스 사용
+                if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
+                    leftMouth = landmarks[78];
+                    rightMouth = landmarks[308];
+                    upperMouth = landmarks[13];
+                    lowerMouth = landmarks[14];
+                }
+                
+                // 랜드마크 유효성 검사
+                console.log('입 랜드마크 체크:', {
+                    leftMouth: leftMouth,
+                    rightMouth: rightMouth,
+                    upperMouth: upperMouth,
+                    lowerMouth: lowerMouth,
+                    totalLandmarks: landmarks.length
+                });
                 
                 if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
+                    this.updateDebugInfo('✅ 감지됨', '❌ 입 랜드마크 없음', '❌ 계산 불가');
+                    return false;
+                }
+                
+                // 안전한 계산을 위한 유효성 검사
+                if (typeof leftMouth.x !== 'number' || typeof rightMouth.x !== 'number' ||
+                    typeof upperMouth.y !== 'number' || typeof lowerMouth.y !== 'number') {
+                    this.updateDebugInfo('✅ 감지됨', '❌ 랜드마크 좌표 오류', '❌ 계산 불가');
                     return false;
                 }
                 
@@ -396,27 +421,43 @@
                 // 입 높이 계산
                 const mouthHeight = Math.abs(lowerMouth.y - upperMouth.y);
                 
-                // 웃음 지표: 가로가 세로보다 많이 클 때 (입이 옆으로 벌어질 때)
-                const smileRatio = mouthWidth / mouthHeight;
+                // NaN 체크
+                if (isNaN(mouthWidth) || isNaN(mouthHeight) || mouthHeight === 0) {
+                    this.updateDebugInfo('✅ 감지됨', `❌ 계산오류 W:${mouthWidth} H:${mouthHeight}`, '❌ 계산 불가');
+                    return false;
+                }
                 
-                // 입꼴이 위로 올라가는지 확인 (입 양끝이 중앙보다 위에 있는지)
+                // 안전한 비율 계산 (0으로 나누기 방지)
+                const smileRatio = mouthHeight > 0.001 ? mouthWidth / mouthHeight : 0;
+                
+                // 안전한 중앙점 계산
                 const mouthCenterY = (upperMouth.y + lowerMouth.y) / 2;
-                const cornersRaised = (leftMouth.y < mouthCenterY) && (rightMouth.y < mouthCenterY);
+                const cornersRaised = !isNaN(mouthCenterY) && 
+                                    !isNaN(leftMouth.y) && !isNaN(rightMouth.y) &&
+                                    (leftMouth.y < mouthCenterY) && (rightMouth.y < mouthCenterY);
                 
-                // 웃음 감지 임계값을 낮춰서 테스트 (원래 2.5 → 1.8)
-                const isSmiling = smileRatio > 1.8 && cornersRaised;
+                // 모든 값이 유효한지 재확인
+                const validCalculation = !isNaN(smileRatio) && !isNaN(mouthWidth) && !isNaN(mouthHeight);
                 
-                // 더 간단한 웃음 감지도 추가 (가로길이만으로)
-                const isWideSmile = mouthWidth > 0.08; // 입이 충분히 넓으면
+                if (!validCalculation) {
+                    this.updateDebugInfo('✅ 감지됨', '❌ 계산 중 NaN 발생', '❌ 스킵');
+                    return false; // 이전 상태 유지
+                }
                 
-                // 둘 중 하나라도 만족하면 웃음으로 판정
+                // 웃음 감지 (안전한 계산만 사용)
+                const isSmiling = validCalculation && smileRatio > 1.8 && cornersRaised;
+                const isWideSmile = validCalculation && mouthWidth > 0.08;
                 const finalSmile = isSmiling || isWideSmile;
                 
-                // 🧪 임시 테스트 모드: 입이 조금이라도 열려있으면 웃음으로 판정
-                const tempTestMode = mouthHeight > 0.01; // 매우 관대한 조건
+                // 🧪 임시 테스트 모드
+                const tempTestMode = validCalculation && mouthHeight > 0.01;
                 
-                // 실시간으로 화면에 표시
-                const mouthInfo = `가로:${mouthWidth.toFixed(3)} 세로:${mouthHeight.toFixed(3)} 비율:${smileRatio.toFixed(1)}`;
+                // 안전한 화면 표시 (NaN 방지)
+                const safeWidth = isNaN(mouthWidth) ? 'ERR' : mouthWidth.toFixed(3);
+                const safeHeight = isNaN(mouthHeight) ? 'ERR' : mouthHeight.toFixed(3);
+                const safeRatio = isNaN(smileRatio) ? 'ERR' : smileRatio.toFixed(1);
+                
+                const mouthInfo = `가로:${safeWidth} 세로:${safeHeight} 비율:${safeRatio}`;
                 const smileInfo = `넓음:${isWideSmile} 올림:${cornersRaised} 테스트:${tempTestMode}`;
                 const finalResult = (finalSmile || tempTestMode) ? '😊 웃음 감지!' : '😐 평상시';
                 
