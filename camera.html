@@ -469,29 +469,30 @@
 
                 const landmarks = results.multiFaceLandmarks[0];
                 
-                // MediaPipe Face Mesh 입 랜드마크 (다양한 인덱스 시도)
-                // 입 바깥쪽 코너: 61(왼쪽), 291(오른쪽)  
-                // 입술 중앙: 12(위), 15(아래)
-                // 대안: 78(왼쪽), 308(오른쪽), 13(위), 14(아래)
-                let leftMouth = landmarks[61];
-                let rightMouth = landmarks[291]; 
-                let upperMouth = landmarks[12];
-                let lowerMouth = landmarks[15];
+                // 478 랜드마크 모드에서 테스트 - 안전한 인덱스부터 시작
+                console.log('첫 10개 랜드마크 샘플:', landmarks.slice(0, 10));
                 
-                // 첫 번째 시도가 실패하면 대안 인덱스 사용
-                if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
-                    leftMouth = landmarks[78];
-                    rightMouth = landmarks[308];
-                    upperMouth = landmarks[13];
-                    lowerMouth = landmarks[14];
+                // 안전하게 존재하는 인덱스 사용 (0~9번은 반드시 존재)
+                let leftMouth = landmarks[0];   // 첫 번째 포인트
+                let rightMouth = landmarks[1];  // 두 번째 포인트  
+                let upperMouth = landmarks[2];  // 세 번째 포인트
+                let lowerMouth = landmarks[3];  // 네 번째 포인트
+                
+                // 랜드마크 상세 검사 + 사용된 인덱스 표시
+                let usedIndices = 'Unknown';
+                if (leftMouth && rightMouth && upperMouth && lowerMouth) {
+                    if (leftMouth === landmarks[78]) usedIndices = '78,308,13,14';
+                    else if (leftMouth === landmarks[61]) usedIndices = '61,291,12,15';
+                    else if (leftMouth === landmarks[0]) usedIndices = '0,17,1,18';
                 }
                 
-                // 랜드마크 상세 검사
                 console.log('🔍 랜드마크 상태:', {
                     leftMouth: leftMouth ? 'OK' : 'NULL',
                     rightMouth: rightMouth ? 'OK' : 'NULL', 
                     upperMouth: upperMouth ? 'OK' : 'NULL',
-                    lowerMouth: lowerMouth ? 'OK' : 'NULL'
+                    lowerMouth: lowerMouth ? 'OK' : 'NULL',
+                    usedIndices: usedIndices,
+                    totalLandmarks: landmarks.length
                 });
                 
                 if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
