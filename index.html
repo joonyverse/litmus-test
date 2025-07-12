@@ -16,7 +16,7 @@
     <canvas id="art"></canvas>
 
     <!-- 카메라 연결 UI -->
-    <div id="camera-connection"
+    <!-- <div id="camera-connection"
         style="position: fixed; top: 20px; right: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 250px;">
         <h3 style="margin: 0 0 10px 0; font-size: 14px;">스마트폰 카메라 연결</h3>
         <button id="connect-camera-btn"
@@ -32,16 +32,21 @@
             <span style="font-size: 10px;">웃으면 선 색상이 파란색으로 변합니다</span>
         </div>
         
-        <!-- 테스트용 직접 제어 버튼 -->
-        <div style="margin-top: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px dashed #ccc;">
-            <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>테스트용 (임시):</strong></p>
-            <button id="test-blue" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">💙 파란색 변경</button>
-            <button id="test-restore" style="background: #FF9800; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">🔄 원래 색상</button>
-            <br>
-            <button id="test-firebase" style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">🔥 Firebase 테스트</button>
-            <div id="firebase-status" style="font-size: 10px; margin: 5px 0; color: #666;">Firebase 상태: 확인 중...</div>
-        </div>
+    <div style="margin-top: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px dashed #ccc;">
+        <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>테스트용 (임시):</strong></p>
+        <button id="test-blue"
+            style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">💙
+            파란색 변경</button>
+        <button id="test-restore"
+            style="background: #FF9800; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">🔄
+            원래 색상</button>
+        <br>
+        <button id="test-firebase"
+            style="background: #4CAF50; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">🔥
+            Firebase 테스트</button>
+        <div id="firebase-status" style="font-size: 10px; margin: 5px 0; color: #666;">Firebase 상태: 확인 중...</div>
     </div>
+    </div> -->
 
     <script type="module" src="main.js"></script>
     <script>
@@ -55,7 +60,7 @@
                 setTimeout(waitForFirebase, 100);
             }
         }
-        
+
         function loadFirebaseRealtime() {
             const script = document.createElement('script');
             script.src = 'firebase-realtime.js';
@@ -69,7 +74,7 @@
             };
             document.head.appendChild(script);
         }
-        
+
         // 페이지 로드 후 Firebase 확인 시작
         window.addEventListener('load', waitForFirebase);
     </script>
@@ -91,49 +96,49 @@
             const testRestoreBtn = document.getElementById('test-restore');
             const testFirebaseBtn = document.getElementById('test-firebase');
             const firebaseStatus = document.getElementById('firebase-status');
-            
+
             if (testBlueBtn && window.cameraController) {
                 testBlueBtn.addEventListener('click', () => {
                     console.log('테스트: 파란색 변경');
                     window.cameraController.onSmileDetected();
                 });
             }
-            
+
             if (testRestoreBtn && window.cameraController) {
                 testRestoreBtn.addEventListener('click', () => {
                     console.log('테스트: 원래 색상 복원');
                     window.cameraController.onSmileStopped();
                 });
             }
-            
+
             if (testFirebaseBtn) {
                 testFirebaseBtn.addEventListener('click', () => {
                     console.log('Firebase 연결 테스트 시작');
                     testFirebaseConnection(firebaseStatus);
                 });
             }
-            
+
             // Firebase 상태 업데이트
             updateFirebaseStatus(firebaseStatus);
         }
-        
+
         function testFirebaseConnection(statusElement) {
             if (typeof firebase === 'undefined') {
                 statusElement.textContent = 'Firebase 상태: ❌ SDK 로드 실패';
                 statusElement.style.color = 'red';
                 return;
             }
-            
+
             if (window.firebaseRealtime && window.firebaseRealtime.db) {
                 statusElement.textContent = 'Firebase 상태: 🔥 연결됨 - 테스트 중...';
                 statusElement.style.color = 'green';
-                
+
                 // 실제 테스트 메시지 전송
                 window.firebaseRealtime.sendMessage({
                     type: 'test_message',
                     message: '테스트 메시지'
                 }, 'computer');
-                
+
                 setTimeout(() => {
                     statusElement.textContent = 'Firebase 상태: ✅ 테스트 완료';
                 }, 2000);
@@ -142,7 +147,7 @@
                 statusElement.style.color = 'orange';
             }
         }
-        
+
         function updateFirebaseStatus(statusElement) {
             setTimeout(() => {
                 if (typeof firebase === 'undefined') {
