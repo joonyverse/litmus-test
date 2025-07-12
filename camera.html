@@ -368,9 +368,10 @@
 
                     this.faceMesh.setOptions({
                         maxNumFaces: 1,
-                        refineLandmarks: true,
-                        minDetectionConfidence: 0.5,
-                        minTrackingConfidence: 0.5
+                        refineLandmarks: false, // refined landmarks 비활성화 (오작동 방지)
+                        minDetectionConfidence: 0.7, // 신뢰도 높임
+                        minTrackingConfidence: 0.7,
+                        staticImageMode: false
                     });
 
                     this.faceMesh.onResults((results) => this.onResults(results));
@@ -504,17 +505,26 @@
                     return null;
                 }
                 
-                // 좌표 타입 검사
+                // 좌표 타입 및 값 검사
                 console.log('🔍 좌표 값:', {
                     leftX: leftMouth.x, leftY: leftMouth.y,
                     rightX: rightMouth.x, rightY: rightMouth.y,
                     upperY: upperMouth.y, lowerY: lowerMouth.y
                 });
                 
-                if (typeof leftMouth.x !== 'number' || typeof rightMouth.x !== 'number' ||
-                    typeof upperMouth.y !== 'number' || typeof lowerMouth.y !== 'number') {
-                    console.log('❌ 좌표 타입 오류');
-                    this.updateDebugInfo('✅ 감지됨', '❌ 좌표 타입 오류', '🚫 강제 멈춤');
+                // 좌표값 유효성 검사 (null, undefined, 이상값 체크)
+                const isValidCoordinate = (coord) => {
+                    if (coord === null || coord === undefined) return false;
+                    if (typeof coord !== 'number') return false;
+                    if (!isFinite(coord)) return false; // Infinity, -Infinity, NaN 체크
+                    if (Math.abs(coord) > 10) return false; // 정상 범위는 대략 0~1
+                    return true;
+                };
+                
+                if (!isValidCoordinate(leftMouth.x) || !isValidCoordinate(rightMouth.x) ||
+                    !isValidCoordinate(upperMouth.y) || !isValidCoordinate(lowerMouth.y)) {
+                    console.log('❌ 좌표값 이상 - MediaPipe 오작동');
+                    this.updateDebugInfo('✅ 감지됨', '❌ 좌표값 이상 (MediaPipe 오류)', '🚫 강제 멈춤');
                     return null;
                 }
                 
