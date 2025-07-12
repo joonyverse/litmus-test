@@ -7,6 +7,9 @@
     <title>Litmus Test</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 
 <body>
@@ -38,6 +41,7 @@
     </div>
 
     <script type="module" src="main.js"></script>
+    <script src="firebase-realtime.js"></script>
     <script>
         // QRCode 라이브러리 없이도 작동하도록 수정
         function loadCameraController() {

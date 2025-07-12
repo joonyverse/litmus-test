@@ -92,6 +92,10 @@
             cursor: not-allowed;
         }
     </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- MediaPipe -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
@@ -131,6 +135,7 @@
         </div>
     </div>
 
+    <script src="firebase-realtime.js"></script>
     <script type="module">
         class SmileDetector {
             constructor() {
@@ -184,6 +189,11 @@
             }
 
             async continueSetup() {
+                // Firebase 연결 ID 설정
+                if (window.firebaseRealtime) {
+                    window.firebaseRealtime.setConnectionId(this.connectionId);
+                }
+                
                 this.setupUI();
                 await this.setupMediaPipe();
                 this.setupCamera();
@@ -316,15 +326,20 @@
             }
 
             sendMessage(data) {
-                // localStorage를 통한 메시지 전송 (실제로는 WebSocket 사용)
-                try {
-                    localStorage.setItem(`camera_${this.connectionId}`, JSON.stringify({
-                        ...data,
-                        timestamp: Date.now()
-                    }));
-                    console.log('메시지 전송:', data);
-                } catch (error) {
-                    console.error('메시지 전송 실패:', error);
+                // Firebase를 통한 메시지 전송
+                if (window.firebaseRealtime) {
+                    window.firebaseRealtime.sendMessage(data, 'phone');
+                } else {
+                    // localStorage 폴백
+                    try {
+                        localStorage.setItem(`camera_${this.connectionId}`, JSON.stringify({
+                            ...data,
+                            timestamp: Date.now()
+                        }));
+                        console.log('메시지 전송 (localStorage):', data);
+                    } catch (error) {
+                        console.error('메시지 전송 실패:', error);
+                    }
                 }
             }
 

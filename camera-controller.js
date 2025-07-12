@@ -20,6 +20,11 @@ class CameraController {
     showQRCode() {
         this.connectionId = this.generateConnectionId();
         
+        // Firebase에 연결 ID 설정
+        if (window.firebaseRealtime) {
+            window.firebaseRealtime.setConnectionId(this.connectionId);
+        }
+        
         // QR 코드 생성
         const qrContainer = document.getElementById('qr-code');
         const baseUrl = window.location.origin + window.location.pathname;
@@ -119,16 +124,21 @@ class CameraController {
     }
 
     setupWebSocket() {
-        // 실제 구현에서는 WebSocket 서버가 필요합니다
-        // 현재는 시뮬레이션용 더미 구현
-        console.log('WebSocket 연결 준비 (실제 서버 필요)');
+        // Firebase Realtime Database 사용
+        console.log('Firebase 실시간 통신 설정');
         
-        // 임시로 localStorage를 사용한 폴링 방식으로 시뮬레이션
-        this.startPolling();
+        if (window.firebaseRealtime) {
+            window.firebaseRealtime.onMessage((data) => {
+                this.handleMessage(data);
+            });
+        } else {
+            console.warn('Firebase 클라이언트 없음, localStorage 폴백');
+            this.startPolling();
+        }
     }
 
     startPolling() {
-        // 실제로는 WebSocket 사용, 현재는 localStorage 폴링으로 시뮬레이션
+        // localStorage 폴백 (같은 브라우저 내에서만 작동)
         this.pollInterval = setInterval(() => {
             if (this.connectionId) {
                 const message = localStorage.getItem(`camera_${this.connectionId}`);
