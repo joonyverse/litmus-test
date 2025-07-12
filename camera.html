@@ -540,9 +540,6 @@
 
                 const landmarks = results.multiFaceLandmarks[0];
 
-                // 478 랜드마크 모드에서 테스트 - 안전한 인덱스부터 시작
-                console.log('첫 10개 랜드마크 샘플:', landmarks.slice(0, 10));
-
                 // MediaPipe FaceMesh 478 랜드마크 모드의 올바른 입 랜드마크 인덱스
                 // 61: 입 왼쪽 끝, 291: 입 오른쪽 끝, 12: 윗입술, 15: 아랫입술 (더 정확한 인덱스)
                 let leftMouth = landmarks[61];   // 입 왼쪽 끝
@@ -574,6 +571,35 @@
                     rightX: rightMouth.x, rightY: rightMouth.y,
                     upperY: upperMouth.y, lowerY: lowerMouth.y
                 });
+
+                // 비디오와 캔버스 크기 로깅
+                console.log('📐 크기 정보:', {
+                    videoWidth: this.video.videoWidth,
+                    videoHeight: this.video.videoHeight,
+                    canvasWidth: this.canvas.width,
+                    canvasHeight: this.canvas.height
+                });
+
+                // 좌표값 범위 체크 (1보다 큰 값이 있는지 확인)
+                const allCoords = [
+                    leftMouth.x, leftMouth.y,
+                    rightMouth.x, rightMouth.y,
+                    upperMouth.x, upperMouth.y,
+                    lowerMouth.x, lowerMouth.y
+                ];
+
+                const outOfRangeCoords = allCoords.filter(coord => coord > 1 || coord < 0);
+                if (outOfRangeCoords.length > 0) {
+                    console.warn('⚠️ 범위를 벗어난 좌표값 발견:', {
+                        outOfRangeCoords,
+                        allCoords: {
+                            leftMouth: { x: leftMouth.x, y: leftMouth.y },
+                            rightMouth: { x: rightMouth.x, y: rightMouth.y },
+                            upperMouth: { x: upperMouth.x, y: upperMouth.y },
+                            lowerMouth: { x: lowerMouth.x, y: lowerMouth.y }
+                        }
+                    });
+                }
 
                 // 좌표값 유효성 검사 (MediaPipe 좌표값은 0~1 범위)
                 const isValidCoordinate = (coord) => {
