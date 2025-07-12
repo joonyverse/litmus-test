@@ -175,19 +175,39 @@
             }
 
             async init() {
+                console.log('📱 SmileDetector 초기화 시작');
+                
                 // URL에서 연결 ID 가져오기
                 const urlParams = new URLSearchParams(window.location.search);
                 this.connectionId = urlParams.get('id');
+                console.log('🔗 URL에서 가져온 연결 ID:', this.connectionId);
                 
                 if (!this.connectionId) {
+                    console.log('⚠️ 연결 ID가 없어서 수동 입력 UI 표시');
                     // 연결 ID가 없으면 수동 입력 UI 표시
                     this.showCodeInput();
                     return;
                 }
 
-                this.setupUI();
-                await this.setupMediaPipe();
-                this.setupCamera();
+                console.log('✅ 연결 ID 존재, setup 진행');
+                this.waitForFirebaseAndSetup();
+            }
+            
+            waitForFirebaseAndSetup() {
+                console.log('⏳ Firebase 로딩 대기 중...');
+                const checkFirebase = () => {
+                    if (window.firebaseRealtime && window.firebaseRealtime.isInitialized) {
+                        console.log('✅ Firebase 준비됨, setup 시작');
+                        this.continueSetup();
+                    } else {
+                        console.log('⏳ Firebase 대기 중...', {
+                            hasFirebaseRealtime: !!window.firebaseRealtime,
+                            isInitialized: window.firebaseRealtime?.isInitialized
+                        });
+                        setTimeout(checkFirebase, 500);
+                    }
+                };
+                checkFirebase();
             }
 
             showCodeInput() {
@@ -215,9 +235,16 @@
             }
 
             async continueSetup() {
+                console.log('🔗 continueSetup 시작, 연결 ID:', this.connectionId);
+                console.log('🔥 window.firebaseRealtime 존재:', !!window.firebaseRealtime);
+                
                 // Firebase 연결 ID 설정
                 if (window.firebaseRealtime) {
+                    console.log('🔗 Firebase에 연결 ID 설정 중:', this.connectionId);
                     window.firebaseRealtime.setConnectionId(this.connectionId);
+                    console.log('✅ Firebase 연결 ID 설정 완료');
+                } else {
+                    console.error('❌ window.firebaseRealtime이 없음');
                 }
                 
                 this.setupUI();

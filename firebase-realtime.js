@@ -84,11 +84,16 @@ class FirebaseRealtime {
 
     setConnectionId(connectionId) {
         this.connectionId = connectionId;
-        console.log('연결 ID 설정:', connectionId);
+        console.log('🔗 연결 ID 설정:', connectionId);
+        console.log('🔥 현재 Firebase DB 상태:', !!this.db);
+        console.log('🔥 현재 초기화 상태:', this.isInitialized);
         
         if (this.db) {
+            console.log('📡 Firebase 리스너 설정 시작');
             // Firebase 리스너 설정
             this.setupFirebaseListener();
+        } else {
+            console.error('❌ Firebase DB가 없어서 리스너 설정 불가');
         }
     }
 
