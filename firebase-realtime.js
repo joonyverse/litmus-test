@@ -61,8 +61,8 @@ class FirebaseRealtime {
             this.testConnection();
             
         } catch (error) {
-            console.warn('Firebase 초기화 실패:', error.message);
-            this.useFallback();
+            console.error('❌ Firebase 초기화 실패:', error.message);
+            throw error;
         }
     }
 
@@ -76,53 +76,11 @@ class FirebaseRealtime {
             console.log('✅ Firebase 쓰기 테스트 성공');
             testRef.remove(); // 테스트 데이터 삭제
         }).catch((error) => {
-            console.warn('❌ Firebase 쓰기 테스트 실패:', error);
-            this.useFallback();
+            console.error('❌ Firebase 쓰기 테스트 실패:', error);
+            throw error;
         });
     }
 
-    useFallback() {
-        console.log('localStorage + BroadcastChannel 폴백 사용');
-        this.isInitialized = true;
-        
-        // BroadcastChannel로 같은 브라우저 내 탭 간 통신
-        if ('BroadcastChannel' in window) {
-            this.setupBroadcastChannel();
-        } else {
-            this.setupLocalStoragePolling();
-        }
-    }
-
-    setupBroadcastChannel() {
-        // 전역 채널 사용 (모든 연결 ID 공유)
-        this.broadcastChannel = new BroadcastChannel('litmus_global');
-        this.broadcastChannel.onmessage = (event) => {
-            const data = event.data;
-            if (data.connectionId === this.connectionId && this.messageCallback) {
-                console.log('BroadcastChannel 메시지 수신:', data);
-                this.messageCallback(data);
-            }
-        };
-    }
-
-    setupLocalStoragePolling() {
-        this.pollInterval = setInterval(() => {
-            if (this.connectionId) {
-                const message = localStorage.getItem(`camera_${this.connectionId}`);
-                if (message) {
-                    try {
-                        const data = JSON.parse(message);
-                        if (this.messageCallback) {
-                            this.messageCallback(data);
-                        }
-                        localStorage.removeItem(`camera_${this.connectionId}`);
-                    } catch (error) {
-                        console.warn('localStorage 메시지 파싱 실패:', error);
-                    }
-                }
-            }
-        }, 100);
-    }
 
     setConnectionId(connectionId) {
         this.connectionId = connectionId;
@@ -171,8 +129,12 @@ class FirebaseRealtime {
         console.log('📤 sendMessage 호출됨:', { data, from, isInitialized: this.isInitialized, hasDB: !!this.db, connectionId: this.connectionId });
         
         if (!this.isInitialized) {
-            console.warn('Firebase 초기화 대기 중...');
-            setTimeout(() => this.sendMessage(data, from), 500);
+            console.error('❌ Firebase가 초기화되지 않음');
+            return;
+        }
+
+        if (!this.db || !this.connectionId) {
+            console.error('❌ Firebase DB 또는 연결 ID 없음');
             return;
         }
 
@@ -185,45 +147,18 @@ class FirebaseRealtime {
 
         console.log('📤 전송할 메시지:', message);
 
-        if (this.db && this.connectionId) {
-            // Firebase로 전송
-            try {
-                const messagesRef = this.db.ref(`connections/${this.connectionId}/messages`);
-                console.log('📤 Firebase 경로:', `connections/${this.connectionId}/messages`);
-                
-                messagesRef.push(message)
-                    .then(() => {
-                        console.log('✅ Firebase로 메시지 전송 성공');
-                    })
-                    .catch((error) => {
-                        console.error('❌ Firebase 전송 실패:', error);
-                        this.sendViaFallback(message);
-                    });
-                    
-            } catch (error) {
-                console.warn('❌ Firebase 전송 시도 실패, 폴백 사용:', error);
-                this.sendViaFallback(message);
-            }
-        } else {
-            console.warn('⚠️ Firebase DB 또는 연결 ID 없음, 폴백 사용');
-            // 폴백 방법 사용
-            this.sendViaFallback(message);
-        }
+        const messagesRef = this.db.ref(`connections/${this.connectionId}/messages`);
+        console.log('📤 Firebase 경로:', `connections/${this.connectionId}/messages`);
+        
+        messagesRef.push(message)
+            .then(() => {
+                console.log('✅ Firebase로 메시지 전송 성공');
+            })
+            .catch((error) => {
+                console.error('❌ Firebase 전송 실패:', error);
+            });
     }
 
-    sendViaFallback(message) {
-        // BroadcastChannel 사용
-        if (this.broadcastChannel) {
-            this.broadcastChannel.postMessage(message);
-        }
-        
-        // localStorage 백업
-        try {
-            localStorage.setItem(`camera_${this.connectionId}`, JSON.stringify(message));
-        } catch (error) {
-            console.warn('localStorage 저장 실패:', error);
-        }
-    }
 
     onMessage(callback) {
         this.messageCallback = callback;
@@ -232,12 +167,6 @@ class FirebaseRealtime {
     cleanup() {
         if (this.db && this.connectionId) {
             this.db.ref(`connections/${this.connectionId}`).off();
-        }
-        if (this.broadcastChannel) {
-            this.broadcastChannel.close();
-        }
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
         }
     }
 }
