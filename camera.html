@@ -436,8 +436,8 @@
                             await this.faceMesh.send({image: this.video});
                         }
                     },
-                    width: 640,
-                    height: 480
+                    width: 320,  // 해상도 낮춤 (동기화 부담 감소)
+                    height: 240
                 });
             }
 
