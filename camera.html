@@ -448,7 +448,9 @@
                         }
                     },
                     width: cameraWidth,
-                    height: cameraHeight
+                    height: cameraHeight,
+                    // 휴대폰에서 전면 카메라 명시적 지정
+                    facingMode: isMobile ? 'user' : 'environment'
                 });
             }
 
@@ -610,6 +612,31 @@
                 }
             }
 
+            // 휴대폰 좌표 정규화 함수 추가
+            normalizeMobileCoordinates(landmarks) {
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (!isMobile) return landmarks;
+
+                // 휴대폰에서 좌표값 정규화
+                return landmarks.map(landmark => {
+                    if (!landmark) return landmark;
+                    
+                    let x = landmark.x;
+                    let y = landmark.y;
+                    
+                    // 범위를 벗어난 좌표값 보정
+                    x = Math.max(0, Math.min(1, x));
+                    y = Math.max(0, Math.min(1, y));
+                    
+                    // iOS Safari에서 미러링 보정 (전면카메라)
+                    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                        x = 1 - x; // 좌우 반전
+                    }
+                    
+                    return { x, y, z: landmark.z };
+                });
+            }
+
             detectSmile(results) {
                 if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
                     this.updateDebugInfo('❌ 얼굴 없음', '얼굴을 카메라에 맞춰주세요', '감지 불가');
@@ -622,7 +649,9 @@
                 // 모든 프레임에서 랜드마크 수 로그 출력
                 console.log('📸 랜드마크 수:', results.multiFaceLandmarks[0].length);
 
-                const landmarks = results.multiFaceLandmarks[0];
+                // 휴대폰에서 좌표값 정규화 적용
+                const rawLandmarks = results.multiFaceLandmarks[0];
+                const landmarks = this.normalizeMobileCoordinates(rawLandmarks);
 
                 // MediaPipe FaceMesh 478 랜드마크 모드의 올바른 입 랜드마크 인덱스
                 // 61: 입 왼쪽 끝, 291: 입 오른쪽 끝, 12: 윗입술, 15: 아랫입술 (더 정확한 인덱스)
@@ -649,11 +678,13 @@
                     return null;
                 }
 
-                // 좌표 타입 및 값 검사
-                console.log('🔍 좌표 값:', {
-                    leftX: leftMouth.x, leftY: leftMouth.y,
-                    rightX: rightMouth.x, rightY: rightMouth.y,
-                    upperY: upperMouth.y, lowerY: lowerMouth.y
+                // 좌표 타입 및 값 검사 (원본 vs 정규화 후 비교)
+                const originalLeft = rawLandmarks[61];
+                const originalRight = rawLandmarks[291];
+                console.log('🔍 좌표 값 비교:', {
+                    원본: { leftX: originalLeft?.x, rightX: originalRight?.x },
+                    정규화후: { leftX: leftMouth.x, rightX: rightMouth.x },
+                    플랫폼: isMobile ? '휴대폰' : '데스크톱'
                 });
 
                 // 비디오와 캔버스 크기 로깅
@@ -685,15 +716,14 @@
                     });
                 }
 
-                // 좌표값 유효성 검사 (MediaPipe 좌표값은 0~1 범위, 휴대폰에서는 더 관대하게)
+                // 좌표값 유효성 검사 (정규화 후에는 엄격하게 체크)
                 const isValidCoordinate = (coord) => {
                     if (coord === null || coord === undefined) return false;
                     if (typeof coord !== 'number') return false;
                     if (!isFinite(coord)) return false; // Infinity, -Infinity, NaN 체크
-
-                    // 휴대폰에서는 좌표 범위를 더 관대하게 허용 (카메라 회전 등으로 인한 오차)
-                    const maxCoord = isMobile ? 1.2 : 1.0;
-                    if (coord < -0.1 || coord > maxCoord) return false;
+                    
+                    // 정규화 후에는 0~1 범위로 엄격하게 체크
+                    if (coord < 0 || coord > 1) return false;
                     return true;
                 };
 
