@@ -19,11 +19,10 @@ class CameraController {
 
     showQRCode() {
         this.connectionId = this.generateConnectionId();
+        console.log('🔗 생성된 연결 ID:', this.connectionId);
         
-        // Firebase에 연결 ID 설정
-        if (window.firebaseRealtime) {
-            window.firebaseRealtime.setConnectionId(this.connectionId);
-        }
+        // Firebase에 연결 ID 설정 (Firebase 준비될 때까지 대기)
+        this.setupFirebaseConnection();
         
         // QR 코드 생성
         const qrContainer = document.getElementById('qr-code');
@@ -33,7 +32,7 @@ class CameraController {
         // QR 코드 표시
         qrContainer.innerHTML = '';
         
-        console.log('cameraUrl', cameraUrl);
+        console.log('📱 카메라 URL:', cameraUrl);
         // 다중 QR 서비스 사용
         this.createQRCode(qrContainer, cameraUrl);
 
@@ -41,11 +40,21 @@ class CameraController {
         document.getElementById('connect-camera-btn').style.display = 'none';
         document.getElementById('qr-code-container').style.display = 'block';
         
-        console.log('카메라 연결 URL:', cameraUrl);
-        console.log('연결 ID:', this.connectionId);
-        
         // 연결 대기 시작
         this.waitForConnection();
+    }
+    
+    setupFirebaseConnection() {
+        const setConnectionId = () => {
+            if (window.firebaseRealtime && window.firebaseRealtime.isInitialized) {
+                console.log('🔥 컴퓨터에서 Firebase 연결 ID 설정:', this.connectionId);
+                window.firebaseRealtime.setConnectionId(this.connectionId);
+            } else {
+                console.log('⏳ Firebase 대기 중... 연결 ID 설정 재시도');
+                setTimeout(setConnectionId, 500);
+            }
+        };
+        setConnectionId();
     }
 
     createQRCode(container, url) {
@@ -125,16 +134,30 @@ class CameraController {
 
     setupWebSocket() {
         // Firebase Realtime Database 사용
-        console.log('Firebase 실시간 통신 설정');
+        console.log('🔥 Firebase 실시간 통신 설정 시작');
         
-        if (window.firebaseRealtime) {
-            window.firebaseRealtime.onMessage((data) => {
-                this.handleMessage(data);
-            });
-        } else {
-            console.warn('Firebase 클라이언트 없음, localStorage 폴백');
-            this.startPolling();
-        }
+        // Firebase가 준비될 때까지 대기
+        this.waitForFirebaseAndSetupListener();
+    }
+    
+    waitForFirebaseAndSetupListener() {
+        console.log('⏳ Firebase 준비 대기 중...');
+        const checkFirebase = () => {
+            if (window.firebaseRealtime && window.firebaseRealtime.isInitialized) {
+                console.log('✅ Firebase 준비됨, 리스너 설정');
+                window.firebaseRealtime.onMessage((data) => {
+                    console.log('📨 컴퓨터에서 메시지 수신:', data);
+                    this.handleMessage(data);
+                });
+            } else {
+                console.log('⏳ Firebase 대기 중...', {
+                    hasFirebaseRealtime: !!window.firebaseRealtime,
+                    isInitialized: window.firebaseRealtime?.isInitialized
+                });
+                setTimeout(checkFirebase, 500);
+            }
+        };
+        checkFirebase();
     }
 
     startPolling() {
@@ -162,16 +185,25 @@ class CameraController {
     }
 
     handleMessage(data) {
+        console.log('📨 메시지 처리:', data);
         switch (data.type) {
             case 'camera_connected':
+                console.log('📱 카메라 연결됨!');
                 this.onCameraConnected();
                 break;
             case 'smile_detected':
+                console.log('😊 웃음 감지됨!');
                 this.onSmileDetected();
                 break;
             case 'smile_stopped':
+                console.log('😐 웃음 멈춤!');
                 this.onSmileStopped();
                 break;
+            case 'test_message':
+                console.log('🧪 테스트 메시지 수신:', data.message);
+                break;
+            default:
+                console.log('❓ 알 수 없는 메시지 타입:', data.type);
         }
     }
 
