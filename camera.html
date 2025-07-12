@@ -102,14 +102,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
-
-    <!-- DrawingUtils를 전역으로 노출 -->
-    <script>
-        // DrawingUtils를 window 객체에 노출
-        if (typeof DrawingUtils !== 'undefined') {
-            window.DrawingUtils = DrawingUtils;
-        }
-    </script>
 </head>
 
 <body>
@@ -551,19 +543,19 @@
             }
 
             drawFaceLandmarks(landmarks) {
-                if (window.DrawingUtils) {
+                if (window.drawConnectors) {
                     const drawingUtils = new window.DrawingUtils(this.ctx);
                     // CodePen 예제와 동일한 순서와 색상
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_RIGHT_EYEBROW, { color: '#FF3030' });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_LEFT_EYEBROW, { color: '#FF3030' });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_LEFT_EYE, { color: '#30FF30' });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_RIGHT_EYE, { color: '#30FF30' });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_LEFT_IRIS, { color: '#FF3030' });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_RIGHT_IRIS, { color: '#FF3030' });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_LIPS, { color: '#E0E0E0' });
-                    drawingUtils.drawConnectors(landmarks, window.FACEMESH_FACE_OVAL, { color: '#E0E0E0' });
-                    drawingUtils.drawLandmarks(landmarks, { color: '#FF0000', lineWidth: 1 });
+                    window.drawConnectors(landmarks, window.FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
+                    window.drawConnectors(landmarks, window.FACEMESH_RIGHT_EYEBROW, { color: '#FF3030' });
+                    window.drawConnectors(landmarks, window.FACEMESH_LEFT_EYEBROW, { color: '#FF3030' });
+                    window.drawConnectors(landmarks, window.FACEMESH_LEFT_EYE, { color: '#30FF30' });
+                    window.drawConnectors(landmarks, window.FACEMESH_RIGHT_EYE, { color: '#30FF30' });
+                    window.drawConnectors(landmarks, window.FACEMESH_LEFT_IRIS, { color: '#FF3030' });
+                    window.drawConnectors(landmarks, window.FACEMESH_RIGHT_IRIS, { color: '#FF3030' });
+                    window.drawConnectors(landmarks, window.FACEMESH_LIPS, { color: '#E0E0E0' });
+                    window.drawConnectors(landmarks, window.FACEMESH_FACE_OVAL, { color: '#E0E0E0' });
+                    window.drawLandmarks(landmarks, { color: '#FF0000', lineWidth: 1 });
                 } else {
                     this.drawFallbackLandmarks(landmarks);
                 }
