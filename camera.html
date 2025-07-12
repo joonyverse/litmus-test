@@ -538,12 +538,12 @@
                     upperY: upperMouth.y, lowerY: lowerMouth.y
                 });
                 
-                // 좌표값 유효성 검사 (매우 관대한 설정)
+                // 좌표값 유효성 검사 (정상 범위: 0~1 또는 픽셀 좌표 ~640)
                 const isValidCoordinate = (coord) => {
                     if (coord === null || coord === undefined) return false;
                     if (typeof coord !== 'number') return false;
                     if (!isFinite(coord)) return false; // Infinity, -Infinity, NaN 체크
-                    if (Math.abs(coord) > 1000) return false; // 범위를 매우 크게 설정
+                    if (Math.abs(coord) > 100) return false; // 100 이상이면 이상값
                     return true;
                 };
                 
@@ -552,14 +552,14 @@
                     console.log('❌ 좌표값 이상 - MediaPipe 재시작 필요');
                     this.errorCount = (this.errorCount || 0) + 1;
                     
-                    // 연속 에러가 5번 이상이면 MediaPipe 재시작
-                    if (this.errorCount >= 5) {
-                        console.log('🔄 MediaPipe 재시작 시도');
+                    // 연속 에러가 3번 이상이면 MediaPipe 재시작 (더 빠른 복구)
+                    if (this.errorCount >= 3) {
+                        console.log('🔄 MediaPipe 재시작 시도 (좌표값 폭발 감지)');
                         this.restartMediaPipe();
                         this.errorCount = 0;
                     }
                     
-                    this.updateDebugInfo('✅ 감지됨', `❌ 좌표값 이상 (에러 ${this.errorCount}/5)`, '🚫 강제 멈춤');
+                    this.updateDebugInfo('✅ 감지됨', `❌ 좌표값 이상 (에러 ${this.errorCount}/3)`, '🚫 강제 멈춤');
                     return null;
                 } else {
                     // 정상적인 좌표가 나오면 에러 카운트 리셋
