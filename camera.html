@@ -425,7 +425,16 @@
             }
 
             onResults(results) {
-                const currentlySmiling = this.detectSmile(results);
+                const smileResult = this.detectSmile(results);
+                
+                // detectSmile이 null을 리턴하면 계산 오류 - 강제로 웃음 멈춤 처리
+                let currentlySmiling;
+                if (smileResult === null) {
+                    console.log('🚫 계산 오류 발생 - 강제로 웃음 멈춤 처리');
+                    currentlySmiling = false; // 안전을 위해 웃음 멈춤으로 처리
+                } else {
+                    currentlySmiling = smileResult;
+                }
                 
                 if (currentlySmiling !== this.isSmiling) {
                     this.isSmiling = currentlySmiling;
@@ -433,9 +442,11 @@
                     if (this.isSmiling) {
                         this.showSmiling();
                         this.sendMessage({type: 'smile_detected'});
+                        console.log('📤 웃음 감지 메시지 전송');
                     } else {
                         this.showNeutral();
                         this.sendMessage({type: 'smile_stopped'});
+                        console.log('📤 웃음 멈춤 메시지 전송');
                     }
                 }
             }
@@ -479,15 +490,15 @@
                 }
                 
                 if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
-                    this.updateDebugInfo('✅ 감지됨', '❌ 입 랜드마크 없음', '❌ 계산 불가');
-                    return false;
+                    this.updateDebugInfo('✅ 감지됨', '❌ 입 랜드마크 없음', '🚫 강제 멈춤');
+                    return null; // 랜드마크 없으면 강제 웃음 멈춤
                 }
                 
                 // 안전한 계산을 위한 유효성 검사
                 if (typeof leftMouth.x !== 'number' || typeof rightMouth.x !== 'number' ||
                     typeof upperMouth.y !== 'number' || typeof lowerMouth.y !== 'number') {
-                    this.updateDebugInfo('✅ 감지됨', '❌ 랜드마크 좌표 오류', '❌ 계산 불가');
-                    return false;
+                    this.updateDebugInfo('✅ 감지됨', '❌ 랜드마크 좌표 오류', '🚫 강제 멈춤');
+                    return null;
                 }
                 
                 // 입 가로 길이 계산
@@ -498,8 +509,8 @@
                 
                 // NaN 체크
                 if (isNaN(mouthWidth) || isNaN(mouthHeight) || mouthHeight === 0) {
-                    this.updateDebugInfo('✅ 감지됨', `❌ 계산오류 W:${mouthWidth} H:${mouthHeight}`, '❌ 계산 불가');
-                    return false;
+                    this.updateDebugInfo('✅ 감지됨', `❌ 계산오류 W:${mouthWidth} H:${mouthHeight}`, '🚫 강제 멈춤');
+                    return null;
                 }
                 
                 // 안전한 비율 계산 (0으로 나누기 방지)
@@ -515,8 +526,8 @@
                 const validCalculation = !isNaN(smileRatio) && !isNaN(mouthWidth) && !isNaN(mouthHeight);
                 
                 if (!validCalculation) {
-                    this.updateDebugInfo('✅ 감지됨', '❌ 계산 중 NaN 발생', '❌ 스킵');
-                    return false; // 이전 상태 유지
+                    this.updateDebugInfo('✅ 감지됨', '❌ 계산 중 NaN 발생', '🚫 강제 멈춤');
+                    return null; // null 리턴으로 강제 웃음 멈춤 신호
                 }
                 
                 // 웃음 감지 (안전한 계산만 사용)
