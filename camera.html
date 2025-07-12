@@ -353,8 +353,11 @@
 
             detectSmile(results) {
                 if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+                    console.log('❌ 얼굴 랜드마크 없음');
                     return false;
                 }
+                
+                console.log('✅ 얼굴 랜드마크 감지됨, 포인트 수:', results.multiFaceLandmarks[0].length);
 
                 const landmarks = results.multiFaceLandmarks[0];
                 
@@ -384,18 +387,36 @@
                 const mouthCenterY = (upperMouth.y + lowerMouth.y) / 2;
                 const cornersRaised = (leftMouth.y < mouthCenterY) && (rightMouth.y < mouthCenterY);
                 
-                // 웃음 감지: 입이 충분히 넓고 + 입꼴이 올라가 있을 때
-                const isSmiling = smileRatio > 2.5 && cornersRaised;
+                // 웃음 감지 임계값을 낮춰서 테스트 (원래 2.5 → 1.8)
+                const isSmiling = smileRatio > 1.8 && cornersRaised;
                 
-                console.log('웃음 감지 데이터:', {
-                    mouthWidth: mouthWidth.toFixed(3),
-                    mouthHeight: mouthHeight.toFixed(3),
-                    smileRatio: smileRatio.toFixed(2),
-                    cornersRaised,
-                    isSmiling
-                });
+                // 더 간단한 웃음 감지도 추가 (가로길이만으로)
+                const isWideSmile = mouthWidth > 0.08; // 입이 충분히 넓으면
                 
-                return isSmiling;
+                // 둘 중 하나라도 만족하면 웃음으로 판정
+                const finalSmile = isSmiling || isWideSmile;
+                
+                // 🧪 임시 테스트 모드: 입이 조금이라도 열려있으면 웃음으로 판정
+                const tempTestMode = mouthHeight > 0.01; // 매우 관대한 조건
+                
+                // 매 10프레임마다 로그 출력 (너무 많은 로그 방지)
+                if (Math.random() < 0.1) {
+                    console.log('😊 웃음 감지 상세:', {
+                        leftMouth: `(${leftMouth.x.toFixed(3)}, ${leftMouth.y.toFixed(3)})`,
+                        rightMouth: `(${rightMouth.x.toFixed(3)}, ${rightMouth.y.toFixed(3)})`,
+                        mouthWidth: mouthWidth.toFixed(3),
+                        mouthHeight: mouthHeight.toFixed(3),
+                        smileRatio: smileRatio.toFixed(2),
+                        cornersRaised,
+                        isWideSmile,
+                        isSmiling,
+                        tempTestMode,
+                        FINAL: (finalSmile || tempTestMode) ? '😊 웃음!' : '😐 평상시'
+                    });
+                }
+                
+                // 테스트 모드도 포함해서 판정
+                return finalSmile || tempTestMode;
             }
 
             showSmiling() {
