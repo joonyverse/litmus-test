@@ -544,56 +544,74 @@
             }
 
             drawFaceLandmarks(landmarks) {
-                // MediaPipe drawing_utils의 drawConnectors와 drawLandmarks 사용
-                const drawingUtils = new DrawingUtils(this.ctx);
+                // 간단한 랜드마크 그리기 (DrawingUtils 없이)
 
-                // 얼굴 윤곽선 그리기
-                drawingUtils.drawConnectors(landmarks, FACEMESH_TESSELATION, {
-                    color: '#C0C0C070',
-                    lineWidth: 1
-                });
+                // 모든 랜드마크를 작은 점으로 그리기
+                this.ctx.fillStyle = '#00FF00';
+                for (let i = 0; i < landmarks.length; i++) {
+                    const landmark = landmarks[i];
+                    if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
+                        const x = landmark.x * this.canvas.width;
+                        const y = landmark.y * this.canvas.height;
 
-                // 눈썹 그리기
-                drawingUtils.drawConnectors(landmarks, FACEMESH_RIGHT_EYEBROW, {
-                    color: '#FF3030'
-                });
-                drawingUtils.drawConnectors(landmarks, FACEMESH_LEFT_EYEBROW, {
-                    color: '#30FF30'
-                });
+                        if (landmark.x >= 0 && landmark.x <= 1 && landmark.y >= 0 && landmark.y <= 1) {
+                            this.ctx.beginPath();
+                            this.ctx.arc(x, y, 1, 0, 2 * Math.PI);
+                            this.ctx.fill();
+                        }
+                    }
+                }
 
-                // 눈 그리기
-                drawingUtils.drawConnectors(landmarks, FACEMESH_LEFT_EYE, {
-                    color: '#FF3030'
-                });
-                drawingUtils.drawConnectors(landmarks, FACEMESH_RIGHT_EYE, {
-                    color: '#30FF30'
-                });
+                // 얼굴 윤곽선 그리기 (간단한 선으로)
+                this.ctx.strokeStyle = '#C0C0C0';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
 
-                // 눈동자 그리기
-                drawingUtils.drawConnectors(landmarks, FACEMESH_LEFT_IRIS, {
-                    color: '#FF3030'
-                });
-                drawingUtils.drawConnectors(landmarks, FACEMESH_RIGHT_IRIS, {
-                    color: '#30FF30'
-                });
+                // 얼굴 윤곽선의 주요 점들을 연결
+                const faceOval = window.FACEMESH_FACE_OVAL || [];
+                for (let i = 0; i < faceOval.length; i++) {
+                    const [start, end] = faceOval[i];
+                    const startLandmark = landmarks[start];
+                    const endLandmark = landmarks[end];
 
-                // 입 그리기 (웃음 감지용으로 강조)
-                drawingUtils.drawConnectors(landmarks, FACEMESH_LIPS, {
-                    color: '#E0E0E0',
-                    lineWidth: 2
-                });
+                    if (startLandmark && endLandmark) {
+                        const x1 = startLandmark.x * this.canvas.width;
+                        const y1 = startLandmark.y * this.canvas.height;
+                        const x2 = endLandmark.x * this.canvas.width;
+                        const y2 = endLandmark.y * this.canvas.height;
 
-                // 코 그리기
-                drawingUtils.drawConnectors(landmarks, FACEMESH_FACE_OVAL, {
-                    color: '#E0E0E0'
-                });
+                        if (i === 0) {
+                            this.ctx.moveTo(x1, y1);
+                        }
+                        this.ctx.lineTo(x2, y2);
+                    }
+                }
+                this.ctx.stroke();
 
-                // 주요 랜드마크 점들 그리기
-                drawingUtils.drawLandmarks(landmarks, [{
-                    color: '#FF0000',
-                    lineWidth: 1,
-                    radius: 2
-                }]);
+                // 입 윤곽선 그리기
+                this.ctx.strokeStyle = '#E0E0E0';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+
+                const lips = window.FACEMESH_LIPS || [];
+                for (let i = 0; i < lips.length; i++) {
+                    const [start, end] = lips[i];
+                    const startLandmark = landmarks[start];
+                    const endLandmark = landmarks[end];
+
+                    if (startLandmark && endLandmark) {
+                        const x1 = startLandmark.x * this.canvas.width;
+                        const y1 = startLandmark.y * this.canvas.height;
+                        const x2 = endLandmark.x * this.canvas.width;
+                        const y2 = endLandmark.y * this.canvas.height;
+
+                        if (i === 0) {
+                            this.ctx.moveTo(x1, y1);
+                        }
+                        this.ctx.lineTo(x2, y2);
+                    }
+                }
+                this.ctx.stroke();
 
                 // 입 관련 랜드마크 특별 강조
                 const mouthIndices = [61, 291, 12, 15]; // 입 왼쪽, 오른쪽, 윗입술, 아랫입술
