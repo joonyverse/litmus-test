@@ -28,6 +28,13 @@
             📱 카메라 연결됨!<br>
             <span style="font-size: 10px;">웃으면 선 색상이 파란색으로 변합니다</span>
         </div>
+        
+        <!-- 테스트용 직접 제어 버튼 -->
+        <div style="margin-top: 15px; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px dashed #ccc;">
+            <p style="font-size: 11px; margin: 5px 0; color: #666;"><strong>테스트용 (임시):</strong></p>
+            <button id="test-blue" style="background: #2196F3; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">💙 파란색 변경</button>
+            <button id="test-restore" style="background: #FF9800; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 3px; font-size: 10px;">🔄 원래 색상</button>
+        </div>
     </div>
 
     <script type="module" src="main.js"></script>
@@ -37,9 +44,30 @@
             console.log('카메라 컨트롤러 로딩 시작');
             import('./camera-controller.js').then(() => {
                 console.log('카메라 컨트롤러 로드 완료');
+                setupTestButtons();
             }).catch(error => {
                 console.error('카메라 컨트롤러 로드 실패:', error);
             });
+        }
+
+        // 테스트 버튼 설정
+        function setupTestButtons() {
+            const testBlueBtn = document.getElementById('test-blue');
+            const testRestoreBtn = document.getElementById('test-restore');
+            
+            if (testBlueBtn && window.cameraController) {
+                testBlueBtn.addEventListener('click', () => {
+                    console.log('테스트: 파란색 변경');
+                    window.cameraController.onSmileDetected();
+                });
+            }
+            
+            if (testRestoreBtn && window.cameraController) {
+                testRestoreBtn.addEventListener('click', () => {
+                    console.log('테스트: 원래 색상 복원');
+                    window.cameraController.onSmileStopped();
+                });
+            }
         }
 
         // 페이지 로드 후 바로 시작 (QRCode 라이브러리 의존성 제거)
