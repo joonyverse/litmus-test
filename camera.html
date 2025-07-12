@@ -132,9 +132,9 @@
             <div id="firebase-status">Firebase: -</div>
         </div>
         
-        <!-- 콘솔 로그 표시 영역 (확대됨) -->
-        <div id="console-log" style="background: #000; color: #00ff00; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 10px; font-family: monospace; text-align: left; max-height: 400px; overflow-y: auto;">
-            <div><strong>📱 콘솔 로그 (최대 100개):</strong></div>
+        <!-- 콘솔 로그 표시 영역 (대폭 확대됨) -->
+        <div id="console-log" style="background: #000; color: #00ff00; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 9px; font-family: monospace; text-align: left; max-height: 500px; overflow-y: auto;">
+            <div><strong>📱 콘솔 로그 (최대 131,072개):</strong></div>
             <div id="log-content"></div>
         </div>
         
@@ -155,7 +155,7 @@
         function setupConsoleDisplay() {
             const logContent = document.getElementById('log-content');
             let logCount = 0;
-            const maxLogs = 100; // 최대 로그 개수 (30 → 100)
+            const maxLogs = 131072; // 최대 로그 개수 - 대폭 증가!
             
             // 원본 console 메서드들 저장
             const originalLog = console.log;
@@ -425,11 +425,9 @@
             }
 
             onResults(results) {
-                // 매 10프레임마다만 로그 출력 (성능 개선)
+                // 모든 프레임 로그 출력 복원
                 this.frameCount = (this.frameCount || 0) + 1;
-                if (this.frameCount % 10 === 0) {
-                    console.log(`🎥 프레임 ${this.frameCount} - onResults 호출됨`);
-                }
+                console.log(`🎥 프레임 ${this.frameCount} - onResults 호출됨`);
                 const smileResult = this.detectSmile(results);
                 
                 // detectSmile이 null을 리턴하면 계산 오류 - 강제로 웃음 멈춤 처리
@@ -469,10 +467,8 @@
                     return false;
                 }
                 
-                // 매 10프레임마다만 랜드마크 수 로그 출력
-                if (this.frameCount % 10 === 0) {
-                    console.log('📸 랜드마크 수:', results.multiFaceLandmarks[0].length);
-                }
+                // 모든 프레임에서 랜드마크 수 로그 출력
+                console.log('📸 랜드마크 수:', results.multiFaceLandmarks[0].length);
 
                 const landmarks = results.multiFaceLandmarks[0];
                 
