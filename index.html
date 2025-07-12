@@ -10,10 +10,17 @@
     <!-- Firebase SDK v8 (더 안정적) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- MediaPipe (로컬 카메라용) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 </head>
 
 <body>
     <canvas id="art"></canvas>
+
 
     <!-- 카메라 연결 UI -->
     <!-- <div id="camera-connection"
@@ -49,6 +56,7 @@
     </div> -->
 
     <script type="module" src="main.js"></script>
+    <script src="local-camera.js"></script>
     <script>
         // Firebase 로딩 확인 후 firebase-realtime.js 로드
         function waitForFirebase() {
@@ -97,6 +105,12 @@
             const testFirebaseBtn = document.getElementById('test-firebase');
             const firebaseStatus = document.getElementById('firebase-status');
 
+            // 원격 카메라 UI가 비활성화되어 있는지 확인
+            if (!testBlueBtn && !testRestoreBtn && !testFirebaseBtn && !firebaseStatus) {
+                console.log('⚠️ 원격 카메라 테스트 UI가 비활성화되어 있음 (주석 처리됨)');
+                return;
+            }
+
             if (testBlueBtn && window.cameraController) {
                 testBlueBtn.addEventListener('click', () => {
                     console.log('테스트: 파란색 변경');
@@ -111,18 +125,25 @@
                 });
             }
 
-            if (testFirebaseBtn) {
+            if (testFirebaseBtn && firebaseStatus) {
                 testFirebaseBtn.addEventListener('click', () => {
                     console.log('Firebase 연결 테스트 시작');
                     testFirebaseConnection(firebaseStatus);
                 });
             }
 
-            // Firebase 상태 업데이트
-            updateFirebaseStatus(firebaseStatus);
+            // Firebase 상태 업데이트 (요소가 존재할 때만)
+            if (firebaseStatus) {
+                updateFirebaseStatus(firebaseStatus);
+            }
         }
 
         function testFirebaseConnection(statusElement) {
+            if (!statusElement) {
+                console.log('⚠️ Firebase 상태 요소가 없음');
+                return;
+            }
+            
             if (typeof firebase === 'undefined') {
                 statusElement.textContent = 'Firebase 상태: ❌ SDK 로드 실패';
                 statusElement.style.color = 'red';
@@ -140,7 +161,9 @@
                 }, 'computer');
 
                 setTimeout(() => {
-                    statusElement.textContent = 'Firebase 상태: ✅ 테스트 완료';
+                    if (statusElement) {
+                        statusElement.textContent = 'Firebase 상태: ✅ 테스트 완료';
+                    }
                 }, 2000);
             } else {
                 statusElement.textContent = 'Firebase 상태: ⏳ 초기화 중...';
@@ -149,7 +172,14 @@
         }
 
         function updateFirebaseStatus(statusElement) {
+            if (!statusElement) {
+                console.log('⚠️ Firebase 상태 요소가 없음');
+                return;
+            }
+            
             setTimeout(() => {
+                if (!statusElement) return; // 다시 한번 체크
+                
                 if (typeof firebase === 'undefined') {
                     statusElement.textContent = 'Firebase 상태: ❌ SDK 로드 실패';
                     statusElement.style.color = 'red';
@@ -165,6 +195,42 @@
 
         // 페이지 로드 후 바로 시작 (QRCode 라이브러리 의존성 제거)
         window.addEventListener('load', loadCameraController);
+        
+        // 로컬 카메라 초기화 및 설정
+        let localSmileDetector = null;
+        
+        window.addEventListener('load', () => {
+            // MediaPipe 로딩 대기 후 초기화
+            function initLocalCamera() {
+                if (typeof FaceMesh !== 'undefined' && typeof Camera !== 'undefined') {
+                    console.log('✅ MediaPipe 로드됨, 로컬 카메라 초기화');
+                    localSmileDetector = new LocalSmileDetector();
+                    
+                    // 웃음 감지 콜백 설정
+                    localSmileDetector.setSmileCallback(() => {
+                        // 웃음 감지 시 파란색으로 변경
+                        if (window.cameraController) {
+                            window.cameraController.onSmileDetected();
+                        }
+                    });
+                    
+                    localSmileDetector.setStopSmileCallback(() => {
+                        // 웃음 멈춤 시 원래 색상으로 복원
+                        if (window.cameraController) {
+                            window.cameraController.onSmileStopped();
+                        }
+                    });
+                    
+                    // 전역에서 접근할 수 있도록 저장
+                    window.localSmileDetector = localSmileDetector;
+                } else {
+                    console.log('⏳ MediaPipe 로딩 대기 중...');
+                    setTimeout(initLocalCamera, 500);
+                }
+            }
+            
+            setTimeout(initLocalCamera, 1000); // Firebase 로딩 후 시작
+        });
     </script>
 </body>
 

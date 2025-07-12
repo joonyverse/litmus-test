@@ -10,7 +10,11 @@ class CameraController {
 
     setupUI() {
         const connectBtn = document.getElementById('connect-camera-btn');
-        connectBtn.addEventListener('click', () => this.showQRCode());
+        if (connectBtn) {
+            connectBtn.addEventListener('click', () => this.showQRCode());
+        } else {
+            console.log('🔍 원격 카메라 UI가 비활성화됨 (주석 처리됨)');
+        }
     }
 
     generateConnectionId() {
@@ -18,6 +22,16 @@ class CameraController {
     }
 
     showQRCode() {
+        // UI 요소 존재 확인
+        const qrContainer = document.getElementById('qr-code');
+        const connectBtn = document.getElementById('connect-camera-btn');
+        const qrCodeContainer = document.getElementById('qr-code-container');
+        
+        if (!qrContainer || !connectBtn || !qrCodeContainer) {
+            console.log('⚠️ 원격 카메라 UI 요소들이 비활성화되어 있음');
+            return;
+        }
+        
         this.connectionId = this.generateConnectionId();
         console.log('🔗 생성된 연결 ID:', this.connectionId);
         
@@ -25,7 +39,6 @@ class CameraController {
         this.setupFirebaseConnection();
         
         // QR 코드 생성
-        const qrContainer = document.getElementById('qr-code');
         const baseUrl = window.location.origin + window.location.pathname;
         const cameraUrl = `${baseUrl.replace('index.html', '')}camera.html?id=${this.connectionId}`;
         
@@ -37,8 +50,8 @@ class CameraController {
         this.createQRCode(qrContainer, cameraUrl);
 
         // UI 업데이트
-        document.getElementById('connect-camera-btn').style.display = 'none';
-        document.getElementById('qr-code-container').style.display = 'block';
+        connectBtn.style.display = 'none';
+        qrCodeContainer.style.display = 'block';
         
         // 연결 대기 시작
         this.waitForConnection();
@@ -209,8 +222,18 @@ class CameraController {
 
     onCameraConnected() {
         this.isConnected = true;
-        document.getElementById('qr-code-container').style.display = 'none';
-        document.getElementById('camera-connected').style.display = 'block';
+        
+        // UI 요소 존재 확인
+        const qrCodeContainer = document.getElementById('qr-code-container');
+        const cameraConnected = document.getElementById('camera-connected');
+        
+        if (qrCodeContainer) {
+            qrCodeContainer.style.display = 'none';
+        }
+        if (cameraConnected) {
+            cameraConnected.style.display = 'block';
+        }
+        
         console.log('카메라 연결됨!');
     }
 
@@ -315,9 +338,21 @@ class CameraController {
     }
 
     resetUI() {
-        document.getElementById('connect-camera-btn').style.display = 'block';
-        document.getElementById('qr-code-container').style.display = 'none';
-        document.getElementById('camera-connected').style.display = 'none';
+        // UI 요소 존재 확인
+        const connectBtn = document.getElementById('connect-camera-btn');
+        const qrCodeContainer = document.getElementById('qr-code-container');
+        const cameraConnected = document.getElementById('camera-connected');
+        
+        if (connectBtn) {
+            connectBtn.style.display = 'block';
+        }
+        if (qrCodeContainer) {
+            qrCodeContainer.style.display = 'none';
+        }
+        if (cameraConnected) {
+            cameraConnected.style.display = 'none';
+        }
+        
         this.isConnected = false;
         this.connectionId = null;
     }
