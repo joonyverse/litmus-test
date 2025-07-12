@@ -100,6 +100,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
 </head>
 <body>
     <div class="container">
@@ -368,9 +369,9 @@
 
                     this.faceMesh.setOptions({
                         maxNumFaces: 1,
-                        refineLandmarks: false, // refined landmarks 비활성화 (오작동 방지)
-                        minDetectionConfidence: 0.7, // 신뢰도 높임
-                        minTrackingConfidence: 0.7,
+                        refineLandmarks: true, // 다시 활성화
+                        minDetectionConfidence: 0.3, // 신뢰도 낮춤 (감지 쉽게)
+                        minTrackingConfidence: 0.3,
                         staticImageMode: false
                     });
 
@@ -512,12 +513,12 @@
                     upperY: upperMouth.y, lowerY: lowerMouth.y
                 });
                 
-                // 좌표값 유효성 검사 (null, undefined, 이상값 체크)
+                // 좌표값 유효성 검사 (매우 관대한 설정)
                 const isValidCoordinate = (coord) => {
                     if (coord === null || coord === undefined) return false;
                     if (typeof coord !== 'number') return false;
                     if (!isFinite(coord)) return false; // Infinity, -Infinity, NaN 체크
-                    if (Math.abs(coord) > 10) return false; // 정상 범위는 대략 0~1
+                    if (Math.abs(coord) > 1000) return false; // 범위를 매우 크게 설정
                     return true;
                 };
                 
