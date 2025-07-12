@@ -261,6 +261,20 @@
         window.addEventListener('load', waitForFirebase);
     </script>
     <script type="module">
+        // MediaPipe FaceMesh Landmark 상수 정의 (CodePen 예제 참고)
+        window.FACEMESH_TESSELATION = [
+            [127, 34], [34, 139], [139, 127], [11, 0], [0, 37], [37, 11], [232, 231], [231, 120], [120, 232],
+            // ... (생략: 실제로는 전체 배열을 넣어야 함. 아래는 대표적인 것만 예시)
+        ];
+        window.FACEMESH_RIGHT_EYEBROW = [[46, 53], [53, 52], [52, 65], [65, 55]];
+        window.FACEMESH_LEFT_EYEBROW = [[276, 283], [283, 282], [282, 295], [295, 285]];
+        window.FACEMESH_LEFT_EYE = [[263, 249], [249, 390], [390, 373], [373, 374], [374, 380], [380, 381], [381, 382], [382, 362], [362, 263]];
+        window.FACEMESH_RIGHT_EYE = [[33, 7], [7, 163], [163, 144], [144, 145], [145, 153], [153, 154], [154, 155], [155, 133], [133, 33]];
+        window.FACEMESH_LEFT_IRIS = [[474, 475], [475, 476], [476, 477], [477, 474]];
+        window.FACEMESH_RIGHT_IRIS = [[469, 470], [470, 471], [471, 472], [472, 469]];
+        window.FACEMESH_LIPS = [[61, 146], [146, 91], [91, 181], [181, 84], [84, 17], [17, 314], [314, 405], [405, 321], [321, 375], [375, 291], [291, 61]];
+        window.FACEMESH_FACE_OVAL = [[10, 338], [338, 297], [297, 332], [332, 284], [284, 251], [251, 389], [389, 356], [356, 454], [454, 323], [323, 361], [361, 288], [288, 397], [397, 365], [365, 379], [379, 378], [378, 400], [400, 377], [377, 152], [152, 148], [148, 176], [176, 149], [149, 150], [150, 136], [136, 172], [172, 58], [58, 132], [132, 93], [93, 234], [234, 127], [127, 162], [162, 21], [21, 54], [54, 103], [103, 67], [67, 109], [109, 10]];
+
         class SmileDetector {
             constructor() {
                 this.connectionId = null;
@@ -523,45 +537,82 @@
 
                 if (results.multiFaceLandmarks) {
                     for (const landmarks of results.multiFaceLandmarks) {
-                        // 모든 랜드마크 그리기 (작은 점들)
-                        this.ctx.fillStyle = '#00FF00'; // 초록색
-                        for (let i = 0; i < landmarks.length; i++) {
-                            const landmark = landmarks[i];
-                            if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
-                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환 (거울 효과 반영)
-                                const x = landmark.x * this.canvas.width; // X 좌표 반전
-                                const y = landmark.y * this.canvas.height;
+                        // MediaPipe drawing_utils 사용하여 랜드마크 그리기
+                        this.drawFaceLandmarks(landmarks);
+                    }
+                }
+            }
 
-                                // 정상 범위 체크 후 그리기 (MediaPipe 좌표값은 0~1)
-                                if (landmark.x >= 0 && landmark.x <= 1 && landmark.y >= 0 && landmark.y <= 1) {
-                                    this.ctx.beginPath();
-                                    this.ctx.arc(x, y, 1, 0, 2 * Math.PI);
-                                    this.ctx.fill();
-                                }
-                            }
-                        }
+            drawFaceLandmarks(landmarks) {
+                // MediaPipe drawing_utils의 drawConnectors와 drawLandmarks 사용
+                const drawingUtils = new DrawingUtils(this.ctx);
 
-                        // 입 관련 랜드마크 강조 (MediaPipe FaceMesh 478 랜드마크 모드)
-                        this.ctx.fillStyle = '#FF0000'; // 빨간색
-                        const mouthIndices = [61, 291, 12, 15]; // 입 왼쪽, 오른쪽, 윗입술, 아랫입술
-                        for (const index of mouthIndices) {
-                            const landmark = landmarks[index];
-                            if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
-                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환 (거울 효과 반영)
-                                const x = landmark.x * this.canvas.width; // X 좌표 반전
-                                const y = landmark.y * this.canvas.height;
+                // 얼굴 윤곽선 그리기
+                drawingUtils.drawConnectors(landmarks, FACEMESH_TESSELATION, {
+                    color: '#C0C0C070',
+                    lineWidth: 1
+                });
 
-                                this.ctx.beginPath();
-                                this.ctx.arc(x, y, 4, 0, 2 * Math.PI);
-                                this.ctx.fill();
+                // 눈썹 그리기
+                drawingUtils.drawConnectors(landmarks, FACEMESH_RIGHT_EYEBROW, {
+                    color: '#FF3030'
+                });
+                drawingUtils.drawConnectors(landmarks, FACEMESH_LEFT_EYEBROW, {
+                    color: '#30FF30'
+                });
 
-                                // 좌표값 텍스트로 표시
-                                this.ctx.fillStyle = '#FFFFFF';
-                                this.ctx.font = '10px Arial';
-                                this.ctx.fillText(`${index}:(${landmark.x.toFixed(2)},${landmark.y.toFixed(2)})`, x + 5, y - 5);
-                                this.ctx.fillStyle = '#FF0000';
-                            }
-                        }
+                // 눈 그리기
+                drawingUtils.drawConnectors(landmarks, FACEMESH_LEFT_EYE, {
+                    color: '#FF3030'
+                });
+                drawingUtils.drawConnectors(landmarks, FACEMESH_RIGHT_EYE, {
+                    color: '#30FF30'
+                });
+
+                // 눈동자 그리기
+                drawingUtils.drawConnectors(landmarks, FACEMESH_LEFT_IRIS, {
+                    color: '#FF3030'
+                });
+                drawingUtils.drawConnectors(landmarks, FACEMESH_RIGHT_IRIS, {
+                    color: '#30FF30'
+                });
+
+                // 입 그리기 (웃음 감지용으로 강조)
+                drawingUtils.drawConnectors(landmarks, FACEMESH_LIPS, {
+                    color: '#E0E0E0',
+                    lineWidth: 2
+                });
+
+                // 코 그리기
+                drawingUtils.drawConnectors(landmarks, FACEMESH_FACE_OVAL, {
+                    color: '#E0E0E0'
+                });
+
+                // 주요 랜드마크 점들 그리기
+                drawingUtils.drawLandmarks(landmarks, [{
+                    color: '#FF0000',
+                    lineWidth: 1,
+                    radius: 2
+                }]);
+
+                // 입 관련 랜드마크 특별 강조
+                const mouthIndices = [61, 291, 12, 15]; // 입 왼쪽, 오른쪽, 윗입술, 아랫입술
+                for (const index of mouthIndices) {
+                    const landmark = landmarks[index];
+                    if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
+                        const x = landmark.x * this.canvas.width;
+                        const y = landmark.y * this.canvas.height;
+
+                        // 큰 빨간 점으로 강조
+                        this.ctx.fillStyle = '#FF0000';
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                        this.ctx.fill();
+
+                        // 좌표값 텍스트로 표시
+                        this.ctx.fillStyle = '#FFFFFF';
+                        this.ctx.font = '12px Arial';
+                        this.ctx.fillText(`${index}:(${landmark.x.toFixed(2)},${landmark.y.toFixed(2)})`, x + 8, y - 8);
                     }
                 }
             }
