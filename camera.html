@@ -132,6 +132,12 @@
             <div id="firebase-status">Firebase: -</div>
         </div>
         
+        <!-- 콘솔 로그 표시 영역 -->
+        <div id="console-log" style="background: #000; color: #00ff00; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 10px; font-family: monospace; text-align: left; max-height: 200px; overflow-y: auto;">
+            <div><strong>📱 콘솔 로그:</strong></div>
+            <div id="log-content"></div>
+        </div>
+        
         <button id="start-camera">카메라 시작</button>
         <button id="stop-camera" disabled>카메라 중지</button>
         
@@ -145,6 +151,79 @@
     </div>
 
     <script>
+        // 콘솔 로그를 화면에 표시하는 함수
+        function setupConsoleDisplay() {
+            const logContent = document.getElementById('log-content');
+            let logCount = 0;
+            const maxLogs = 30; // 최대 로그 개수
+            
+            // 원본 console 메서드들 저장
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            function addLogToScreen(type, args) {
+                const timestamp = new Date().toTimeString().split(' ')[0];
+                const message = args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                ).join(' ');
+                
+                const logLine = document.createElement('div');
+                logLine.style.marginBottom = '2px';
+                logLine.style.wordBreak = 'break-all';
+                
+                // 타입별 색상
+                switch(type) {
+                    case 'error': 
+                        logLine.style.color = '#ff6b6b'; 
+                        logLine.innerHTML = `[${timestamp}] ERROR: ${message}`;
+                        break;
+                    case 'warn': 
+                        logLine.style.color = '#ffd93d'; 
+                        logLine.innerHTML = `[${timestamp}] WARN: ${message}`;
+                        break;
+                    default: 
+                        logLine.style.color = '#00ff00'; 
+                        logLine.innerHTML = `[${timestamp}] ${message}`;
+                }
+                
+                logContent.appendChild(logLine);
+                logCount++;
+                
+                // 로그가 너무 많으면 오래된 것 삭제
+                if (logCount > maxLogs) {
+                    logContent.removeChild(logContent.firstChild);
+                    logCount--;
+                }
+                
+                // 자동 스크롤
+                logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
+            }
+            
+            // console.log 오버라이드
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                addLogToScreen('log', args);
+            };
+            
+            // console.error 오버라이드
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                addLogToScreen('error', args);
+            };
+            
+            // console.warn 오버라이드
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                addLogToScreen('warn', args);
+            };
+            
+            console.log('📱 콘솔 화면 표시 활성화됨');
+        }
+        
+        // 페이지 로드 시 콘솔 표시 설정
+        setupConsoleDisplay();
+        
         // Firebase 로딩 대기 후 firebase-realtime.js 로드
         function waitForFirebase() {
             if (typeof firebase !== 'undefined') {
@@ -394,14 +473,10 @@
                     lowerMouth = landmarks[14];
                 }
                 
-                // 랜드마크 유효성 검사
-                console.log('입 랜드마크 체크:', {
-                    leftMouth: leftMouth,
-                    rightMouth: rightMouth,
-                    upperMouth: upperMouth,
-                    lowerMouth: lowerMouth,
-                    totalLandmarks: landmarks.length
-                });
+                // 랜드마크 유효성 검사 (화면에 간단히 표시)
+                if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
+                    console.log('❌ 입 랜드마크 일부 누락');
+                }
                 
                 if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
                     this.updateDebugInfo('✅ 감지됨', '❌ 입 랜드마크 없음', '❌ 계산 불가');
