@@ -544,8 +544,6 @@
 
             drawFaceLandmarks(landmarks) {
                 if (window.drawConnectors) {
-                    const drawingUtils = new window.DrawingUtils(this.ctx);
-                    // CodePen 예제와 동일한 순서와 색상
                     window.drawConnectors(landmarks, window.FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
                     window.drawConnectors(landmarks, window.FACEMESH_RIGHT_EYEBROW, { color: '#FF3030' });
                     window.drawConnectors(landmarks, window.FACEMESH_LEFT_EYEBROW, { color: '#FF3030' });
