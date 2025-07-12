@@ -219,6 +219,7 @@
                     const code = document.getElementById('connection-code').value.trim().toUpperCase();
                     if (code) {
                         this.connectionId = code;
+                        console.log('🔗 수동 입력된 연결 ID:', this.connectionId);
                         document.getElementById('code-input-section').style.display = 'none';
                         this.continueSetup();
                     } else {
@@ -243,6 +244,10 @@
                     console.log('🔗 Firebase에 연결 ID 설정 중:', this.connectionId);
                     window.firebaseRealtime.setConnectionId(this.connectionId);
                     console.log('✅ Firebase 연결 ID 설정 완료');
+                    
+                    // 자동으로 연결 메시지 전송
+                    console.log('📡 자동 연결 메시지 전송');
+                    this.sendMessage({type: 'camera_connected'});
                 } else {
                     console.error('❌ window.firebaseRealtime이 없음');
                 }
