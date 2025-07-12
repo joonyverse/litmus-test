@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>스마트폰 카메라 - Litmus Test</title>
@@ -12,51 +13,51 @@
             background: #f0f0f0;
             text-align: center;
         }
-        
+
         .container {
             max-width: 400px;
             margin: 0 auto;
             background: white;
             border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
         }
-        
+
         h1 {
             color: #333;
             font-size: 24px;
             margin-bottom: 20px;
         }
-        
+
         #video {
             width: 100%;
             max-width: 300px;
             border-radius: 10px;
             background: #000;
         }
-        
+
         #status {
             margin: 15px 0;
             padding: 10px;
             border-radius: 5px;
             font-weight: bold;
         }
-        
+
         .status-connecting {
             background: #fff3cd;
             color: #856404;
         }
-        
+
         .status-connected {
             background: #d4edda;
             color: #155724;
         }
-        
+
         .status-error {
             background: #f8d7da;
             color: #721c24;
         }
-        
+
         #smile-indicator {
             font-size: 48px;
             margin: 20px 0;
@@ -65,13 +66,13 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .instruction {
             font-size: 14px;
             color: #666;
             margin: 10px 0;
         }
-        
+
         button {
             background: #4CAF50;
             color: white;
@@ -82,11 +83,11 @@
             cursor: pointer;
             margin: 10px;
         }
-        
+
         button:hover {
             background: #45a049;
         }
-        
+
         button:disabled {
             background: #ccc;
             cursor: not-allowed;
@@ -102,49 +103,52 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js"></script>
 </head>
+
 <body>
     <div class="container">
         <h1>📱 스마트폰 카메라</h1>
-        
+
         <!-- 연결 코드 입력 (URL에 ID가 없을 때만 표시) -->
         <div id="code-input-section" style="display: none; margin-bottom: 20px;">
             <p style="font-size: 14px; margin-bottom: 10px;">연결 코드를 입력하세요:</p>
-            <input type="text" id="connection-code" placeholder="예: ABC123" 
-                   style="width: 100px; padding: 8px; font-size: 16px; text-align: center; text-transform: uppercase;">
+            <input type="text" id="connection-code" placeholder="예: ABC123"
+                style="width: 100px; padding: 8px; font-size: 16px; text-align: center; text-transform: uppercase;">
             <button id="connect-with-code" style="margin-left: 10px;">연결</button>
         </div>
-        
+
         <div style="position: relative;">
             <video id="video" autoplay muted playsinline style="transform: scaleX(-1);"></video>
             <canvas id="output" style="position: absolute; left: 0; top: 0; transform: scaleX(-1);"></canvas>
         </div>
-        
+
         <div id="status" class="status-connecting">연결 중...</div>
-        
+
         <div id="smile-indicator">😐</div>
-        
+
         <div class="instruction">
             웃으면 컴퓨터 화면의 선 색상이 파란색으로 변합니다!
         </div>
-        
+
         <!-- 디버깅 정보 표시 영역 -->
-        <div id="debug-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 11px; font-family: monospace; text-align: left;">
+        <div id="debug-info"
+            style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 11px; font-family: monospace; text-align: left;">
             <div><strong>🔍 실시간 디버깅:</strong></div>
             <div id="face-status">얼굴 감지: 대기 중...</div>
             <div id="mouth-data">입 데이터: -</div>
             <div id="smile-result">웃음 감지: -</div>
             <div id="firebase-status">Firebase: -</div>
         </div>
-        
+
         <!-- 콘솔 로그 표시 영역 (대폭 확대됨) -->
-        <div id="console-log" style="background: #000; color: #00ff00; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 9px; font-family: monospace; text-align: left; max-height: 500px; overflow-y: auto;">
+        <div id="console-log"
+            style="background: #000; color: #00ff00; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 9px; font-family: monospace; text-align: left; max-height: 500px; overflow-y: auto;">
             <div><strong>📱 콘솔 로그 (최대 131,072개):</strong></div>
             <div id="log-content"></div>
         </div>
-        
+
         <button id="start-camera">카메라 시작</button>
         <button id="stop-camera" disabled>카메라 중지</button>
-        
+
         <!-- 테스트용 버튼들 -->
         <div style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
             <p style="font-size: 12px; margin: 5px 0;"><strong>테스트용 버튼:</strong></p>
@@ -160,74 +164,74 @@
             const logContent = document.getElementById('log-content');
             let logCount = 0;
             const maxLogs = 131072; // 최대 로그 개수 - 대폭 증가!
-            
+
             // 원본 console 메서드들 저장
             const originalLog = console.log;
             const originalError = console.error;
             const originalWarn = console.warn;
-            
+
             function addLogToScreen(type, args) {
                 const timestamp = new Date().toTimeString().split(' ')[0];
-                const message = args.map(arg => 
+                const message = args.map(arg =>
                     typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
                 ).join(' ');
-                
+
                 const logLine = document.createElement('div');
                 logLine.style.marginBottom = '2px';
                 logLine.style.wordBreak = 'break-all';
-                
+
                 // 타입별 색상
-                switch(type) {
-                    case 'error': 
-                        logLine.style.color = '#ff6b6b'; 
+                switch (type) {
+                    case 'error':
+                        logLine.style.color = '#ff6b6b';
                         logLine.innerHTML = `[${timestamp}] ERROR: ${message}`;
                         break;
-                    case 'warn': 
-                        logLine.style.color = '#ffd93d'; 
+                    case 'warn':
+                        logLine.style.color = '#ffd93d';
                         logLine.innerHTML = `[${timestamp}] WARN: ${message}`;
                         break;
-                    default: 
-                        logLine.style.color = '#00ff00'; 
+                    default:
+                        logLine.style.color = '#00ff00';
                         logLine.innerHTML = `[${timestamp}] ${message}`;
                 }
-                
+
                 logContent.appendChild(logLine);
                 logCount++;
-                
+
                 // 로그가 너무 많으면 오래된 것 삭제
                 if (logCount > maxLogs) {
                     logContent.removeChild(logContent.firstChild);
                     logCount--;
                 }
-                
+
                 // 자동 스크롤
                 logContent.parentElement.scrollTop = logContent.parentElement.scrollHeight;
             }
-            
+
             // console.log 오버라이드
-            console.log = function(...args) {
+            console.log = function (...args) {
                 originalLog.apply(console, args);
                 addLogToScreen('log', args);
             };
-            
+
             // console.error 오버라이드
-            console.error = function(...args) {
+            console.error = function (...args) {
                 originalError.apply(console, args);
                 addLogToScreen('error', args);
             };
-            
+
             // console.warn 오버라이드
-            console.warn = function(...args) {
+            console.warn = function (...args) {
                 originalWarn.apply(console, args);
                 addLogToScreen('warn', args);
             };
-            
+
             console.log('📱 콘솔 화면 표시 활성화됨');
         }
-        
+
         // 페이지 로드 시 콘솔 표시 설정
         setupConsoleDisplay();
-        
+
         // Firebase 로딩 대기 후 firebase-realtime.js 로드
         function waitForFirebase() {
             if (typeof firebase !== 'undefined') {
@@ -238,7 +242,7 @@
                 setTimeout(waitForFirebase, 100);
             }
         }
-        
+
         function loadFirebaseRealtime() {
             const script = document.createElement('script');
             script.src = 'firebase-realtime.js';
@@ -250,7 +254,7 @@
             };
             document.head.appendChild(script);
         }
-        
+
         // 페이지 로드 후 Firebase 확인 시작
         window.addEventListener('load', waitForFirebase);
     </script>
@@ -266,18 +270,18 @@
                 this.camera = null;
                 this.lastSmileTime = 0;
                 this.smileConfidenceThreshold = 0.6;
-                
+
                 this.init();
             }
 
             async init() {
                 console.log('📱 SmileDetector 초기화 시작');
-                
+
                 // URL에서 연결 ID 가져오기
                 const urlParams = new URLSearchParams(window.location.search);
                 this.connectionId = urlParams.get('id');
                 console.log('🔗 URL에서 가져온 연결 ID:', this.connectionId);
-                
+
                 if (!this.connectionId) {
                     console.log('⚠️ 연결 ID가 없어서 수동 입력 UI 표시');
                     // 연결 ID가 없으면 수동 입력 UI 표시
@@ -288,7 +292,7 @@
                 console.log('✅ 연결 ID 존재, setup 진행');
                 this.waitForFirebaseAndSetup();
             }
-            
+
             waitForFirebaseAndSetup() {
                 console.log('⏳ Firebase 로딩 대기 중...');
                 const checkFirebase = () => {
@@ -309,7 +313,7 @@
             showCodeInput() {
                 document.getElementById('code-input-section').style.display = 'block';
                 document.getElementById('status').textContent = '연결 코드를 입력하세요';
-                
+
                 // 연결 코드 입력 이벤트 리스너
                 document.getElementById('connect-with-code').addEventListener('click', () => {
                     const code = document.getElementById('connection-code').value.trim().toUpperCase();
@@ -334,21 +338,21 @@
             async continueSetup() {
                 console.log('🔗 continueSetup 시작, 연결 ID:', this.connectionId);
                 console.log('🔥 window.firebaseRealtime 존재:', !!window.firebaseRealtime);
-                
+
                 // Firebase 연결 ID 설정
                 if (window.firebaseRealtime) {
                     console.log('🔗 Firebase에 연결 ID 설정 중:', this.connectionId);
                     window.firebaseRealtime.setConnectionId(this.connectionId);
                     console.log('✅ Firebase 연결 ID 설정 완료');
-                    
+
                     // 자동으로 연결 메시지 전송
                     console.log('📡 자동 연결 메시지 전송');
-                    this.sendMessage({type: 'camera_connected'});
+                    this.sendMessage({ type: 'camera_connected' });
                     document.getElementById('firebase-status').textContent = 'Firebase: ✅ 연결됨';
                 } else {
                     console.error('❌ window.firebaseRealtime이 없음');
                 }
-                
+
                 this.setupUI();
                 await this.setupFaceMesh();
                 this.setupCamera();
@@ -357,7 +361,7 @@
             setupUI() {
                 document.getElementById('start-camera').addEventListener('click', () => this.startCamera());
                 document.getElementById('stop-camera').addEventListener('click', () => this.stopCamera());
-                
+
                 // 테스트 버튼들
                 document.getElementById('test-connection').addEventListener('click', () => this.testConnection());
                 document.getElementById('test-smile').addEventListener('click', () => this.testSmile());
@@ -377,56 +381,19 @@
                         refineLandmarks: true,
                         minDetectionConfidence: 0.5,
                         minTrackingConfidence: 0.5,
-                        staticImageMode: true // tracking 비활성화로 누적 방지
+                        staticImageMode: false // 실시간 비디오 처리용
                     });
 
                     this.faceMesh.onResults((results) => this.onResults(results));
-                    
+
                     console.log('MediaPipe FaceMesh 설정 완료');
                 } catch (error) {
                     console.error('MediaPipe FaceMesh 설정 실패:', error);
                     this.showError('얼굴 메쉬 라이브러리 로딩 실패');
                 }
             }
-            
-            async restartMediaPipe() {
-                try {
-                    console.log('🔄 MediaPipe + Camera 완전 재시작 중...');
-                    
-                    // 카메라도 완전히 정리
-                    if (this.camera) {
-                        console.log('📷 카메라 정리 중...');
-                        this.camera.stop();
-                        this.camera = null;
-                    }
-                    
-                    // 기존 Face Mesh 정리
-                    if (this.faceMesh) {
-                        console.log('🔧 Face Mesh 정리 중...');
-                        this.faceMesh.close();
-                        this.faceMesh = null;
-                    }
-                    
-                    // GPU 메모리 완전 정리 대기
-                    console.log('🧹 GPU 메모리 정리 대기...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                    // Face Mesh 재생성
-                    console.log('🔧 Face Mesh 재생성...');
-                    await this.setupFaceMesh();
-                    
-                    // 카메라 재생성
-                    console.log('📷 카메라 재생성...');
-                    this.setupCamera();
-                    
-                    console.log('✅ 완전 재시작 완료');
-                    this.updateDebugInfo('🔄 완전 재시작됨', '대기 중...', '재시작 완료');
-                    
-                } catch (error) {
-                    console.error('❌ 완전 재시작 실패:', error);
-                    this.updateDebugInfo('❌ 재시작 실패', error.message, '오류');
-                }
-            }
+
+
 
             setupCamera() {
                 // 카메라 지원 확인
@@ -438,7 +405,7 @@
                 this.camera = new Camera(this.video, {
                     onFrame: async () => {
                         if (this.faceMesh) {
-                            await this.faceMesh.send({image: this.video});
+                            await this.faceMesh.send({ image: this.video });
                         }
                     },
                     width: 320,  // 해상도 낮춤 (동기화 부담 감소)
@@ -450,11 +417,11 @@
                 try {
                     await this.camera.start();
                     this.updateStatus('연결됨! 웃어보세요 😊', 'connected');
-                    this.sendMessage({type: 'camera_connected'});
-                    
+                    this.sendMessage({ type: 'camera_connected' });
+
                     document.getElementById('start-camera').disabled = true;
                     document.getElementById('stop-camera').disabled = false;
-                    
+
                 } catch (error) {
                     console.error('카메라 시작 실패:', error);
                     this.showError('카메라 접근 권한을 허용해주세요.');
@@ -474,12 +441,12 @@
                 // 모든 프레임 로그 출력 복원
                 this.frameCount = (this.frameCount || 0) + 1;
                 console.log(`🎥 프레임 ${this.frameCount} - onResults 호출됨`);
-                
+
                 // 랜드마크 시각화
                 this.drawLandmarks(results);
-                
+
                 const smileResult = this.detectSmile(results);
-                
+
                 // detectSmile이 null을 리턴하면 계산 오류 - 강제로 웃음 멈춤 처리
                 let currentlySmiling;
                 if (smileResult === null) {
@@ -488,17 +455,17 @@
                 } else {
                     currentlySmiling = smileResult;
                 }
-                
+
                 if (currentlySmiling !== this.isSmiling) {
                     this.isSmiling = currentlySmiling;
-                    
+
                     if (this.isSmiling) {
                         this.showSmiling();
-                        this.sendMessage({type: 'smile_detected'});
+                        this.sendMessage({ type: 'smile_detected' });
                         console.log('📤 웃음 감지 메시지 전송');
                     } else {
                         this.showNeutral();
-                        this.sendMessage({type: 'smile_stopped'});
+                        this.sendMessage({ type: 'smile_stopped' });
                         console.log('📤 웃음 멈춤 메시지 전송');
                     }
                 }
@@ -510,15 +477,15 @@
                 document.getElementById('mouth-data').textContent = `입 데이터: ${mouthData || '데이터 없음'}`;
                 document.getElementById('smile-result').textContent = `웃음 감지: ${smileResult || '판정 없음'}`;
             }
-            
+
             drawLandmarks(results) {
                 // 캔버스 크기를 비디오에 맞춤
                 this.canvas.width = this.video.videoWidth;
                 this.canvas.height = this.video.videoHeight;
-                
+
                 // 캔버스 지우기
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                
+
                 if (results.multiFaceLandmarks) {
                     for (const landmarks of results.multiFaceLandmarks) {
                         // 모든 랜드마크 그리기 (작은 점들)
@@ -528,29 +495,29 @@
                             if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
                                 const x = landmark.x * this.canvas.width;
                                 const y = landmark.y * this.canvas.height;
-                                
-                                // 정상 범위 체크 후 그리기
-                                if (Math.abs(landmark.x) < 10 && Math.abs(landmark.y) < 10) {
+
+                                // 정상 범위 체크 후 그리기 (MediaPipe 좌표값은 0~1)
+                                if (landmark.x >= 0 && landmark.x <= 1 && landmark.y >= 0 && landmark.y <= 1) {
                                     this.ctx.beginPath();
                                     this.ctx.arc(x, y, 1, 0, 2 * Math.PI);
                                     this.ctx.fill();
                                 }
                             }
                         }
-                        
-                        // 입 관련 랜드마크 강조 (우리가 사용하는 0,1,2,3번)
+
+                        // 입 관련 랜드마크 강조 (MediaPipe FaceMesh 478 랜드마크 모드)
                         this.ctx.fillStyle = '#FF0000'; // 빨간색
-                        const mouthIndices = [0, 1, 2, 3];
+                        const mouthIndices = [61, 291, 12, 15]; // 입 왼쪽, 오른쪽, 윗입술, 아랫입술
                         for (const index of mouthIndices) {
                             const landmark = landmarks[index];
                             if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
                                 const x = landmark.x * this.canvas.width;
                                 const y = landmark.y * this.canvas.height;
-                                
+
                                 this.ctx.beginPath();
                                 this.ctx.arc(x, y, 4, 0, 2 * Math.PI);
                                 this.ctx.fill();
-                                
+
                                 // 좌표값 텍스트로 표시
                                 this.ctx.fillStyle = '#FFFFFF';
                                 this.ctx.font = '10px Arial';
@@ -567,135 +534,119 @@
                     this.updateDebugInfo('❌ 얼굴 없음', '얼굴을 카메라에 맞춰주세요', '감지 불가');
                     return false;
                 }
-                
+
                 // 모든 프레임에서 랜드마크 수 로그 출력
                 console.log('📸 랜드마크 수:', results.multiFaceLandmarks[0].length);
 
                 const landmarks = results.multiFaceLandmarks[0];
-                
+
                 // 478 랜드마크 모드에서 테스트 - 안전한 인덱스부터 시작
                 console.log('첫 10개 랜드마크 샘플:', landmarks.slice(0, 10));
-                
-                // 안전하게 존재하는 인덱스 사용 (0~9번은 반드시 존재)
-                let leftMouth = landmarks[0];   // 첫 번째 포인트
-                let rightMouth = landmarks[1];  // 두 번째 포인트  
-                let upperMouth = landmarks[2];  // 세 번째 포인트
-                let lowerMouth = landmarks[3];  // 네 번째 포인트
-                
+
+                // MediaPipe FaceMesh 478 랜드마크 모드의 올바른 입 랜드마크 인덱스
+                // 61: 입 왼쪽 끝, 291: 입 오른쪽 끝, 12: 윗입술, 15: 아랫입술 (더 정확한 인덱스)
+                let leftMouth = landmarks[61];   // 입 왼쪽 끝
+                let rightMouth = landmarks[291]; // 입 오른쪽 끝  
+                let upperMouth = landmarks[12];  // 윗입술
+                let lowerMouth = landmarks[15];  // 아랫입술
+
                 // 랜드마크 상세 검사 + 사용된 인덱스 표시
-                let usedIndices = 'Unknown';
-                if (leftMouth && rightMouth && upperMouth && lowerMouth) {
-                    if (leftMouth === landmarks[78]) usedIndices = '78,308,13,14';
-                    else if (leftMouth === landmarks[61]) usedIndices = '61,291,12,15';
-                    else if (leftMouth === landmarks[0]) usedIndices = '0,17,1,18';
-                }
-                
+                let usedIndices = '61,291,12,15';
+
                 console.log('🔍 랜드마크 상태:', {
                     leftMouth: leftMouth ? 'OK' : 'NULL',
-                    rightMouth: rightMouth ? 'OK' : 'NULL', 
+                    rightMouth: rightMouth ? 'OK' : 'NULL',
                     upperMouth: upperMouth ? 'OK' : 'NULL',
                     lowerMouth: lowerMouth ? 'OK' : 'NULL',
                     usedIndices: usedIndices,
                     totalLandmarks: landmarks.length
                 });
-                
+
                 if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
                     console.log('❌ 입 랜드마크 일부 누락 - 인덱스 문제일 수 있음');
                     this.updateDebugInfo('✅ 감지됨', '❌ 랜드마크 인덱스 오류', '🚫 강제 멈춤');
                     return null;
                 }
-                
+
                 // 좌표 타입 및 값 검사
                 console.log('🔍 좌표 값:', {
                     leftX: leftMouth.x, leftY: leftMouth.y,
                     rightX: rightMouth.x, rightY: rightMouth.y,
                     upperY: upperMouth.y, lowerY: lowerMouth.y
                 });
-                
-                // 좌표값 유효성 검사 (정상 범위: 0~1 또는 픽셀 좌표 ~640)
+
+                // 좌표값 유효성 검사 (MediaPipe 좌표값은 0~1 범위)
                 const isValidCoordinate = (coord) => {
                     if (coord === null || coord === undefined) return false;
                     if (typeof coord !== 'number') return false;
                     if (!isFinite(coord)) return false; // Infinity, -Infinity, NaN 체크
-                    if (Math.abs(coord) > 100) return false; // 100 이상이면 이상값
+                    if (coord < 0 || coord > 1) return false; // 0~1 범위 체크
                     return true;
                 };
-                
+
                 if (!isValidCoordinate(leftMouth.x) || !isValidCoordinate(rightMouth.x) ||
                     !isValidCoordinate(upperMouth.y) || !isValidCoordinate(lowerMouth.y)) {
-                    console.log('❌ 좌표값 이상 - MediaPipe 재시작 필요');
-                    this.errorCount = (this.errorCount || 0) + 1;
-                    
-                    // 연속 에러가 3번 이상이면 MediaPipe 재시작 (더 빠른 복구)
-                    if (this.errorCount >= 3) {
-                        console.log('🔄 MediaPipe 재시작 시도 (좌표값 폭발 감지)');
-                        this.restartMediaPipe();
-                        this.errorCount = 0;
-                    }
-                    
-                    this.updateDebugInfo('✅ 감지됨', `❌ 좌표값 이상 (에러 ${this.errorCount}/3)`, '🚫 강제 멈춤');
+                    console.log('❌ 좌표값 이상');
+                    this.updateDebugInfo('✅ 감지됨', '❌ 좌표값 이상', '🚫 강제 멈춤');
                     return null;
-                } else {
-                    // 정상적인 좌표가 나오면 에러 카운트 리셋
-                    this.errorCount = 0;
                 }
-                
+
                 // 입 가로 길이 계산
                 const mouthWidth = Math.abs(rightMouth.x - leftMouth.x);
-                
+
                 // 입 높이 계산
                 const mouthHeight = Math.abs(lowerMouth.y - upperMouth.y);
-                
+
                 // NaN 체크
                 if (isNaN(mouthWidth) || isNaN(mouthHeight) || mouthHeight === 0) {
                     this.updateDebugInfo('✅ 감지됨', `❌ 계산오류 W:${mouthWidth} H:${mouthHeight}`, '🚫 강제 멈춤');
                     return null;
                 }
-                
+
                 // 안전한 비율 계산 (0으로 나누기 방지)
                 const smileRatio = mouthHeight > 0.001 ? mouthWidth / mouthHeight : 0;
-                
+
                 // 안전한 중앙점 계산
                 const mouthCenterY = (upperMouth.y + lowerMouth.y) / 2;
-                const cornersRaised = !isNaN(mouthCenterY) && 
-                                    !isNaN(leftMouth.y) && !isNaN(rightMouth.y) &&
-                                    (leftMouth.y < mouthCenterY) && (rightMouth.y < mouthCenterY);
-                
+                const cornersRaised = !isNaN(mouthCenterY) &&
+                    !isNaN(leftMouth.y) && !isNaN(rightMouth.y) &&
+                    (leftMouth.y < mouthCenterY) && (rightMouth.y < mouthCenterY);
+
                 // 모든 값이 유효한지 재확인
                 const validCalculation = !isNaN(smileRatio) && !isNaN(mouthWidth) && !isNaN(mouthHeight);
-                
+
                 if (!validCalculation) {
                     this.updateDebugInfo('✅ 감지됨', '❌ 계산 중 NaN 발생', '🚫 강제 멈춤');
                     return null; // null 리턴으로 강제 웃음 멈춤 신호
                 }
-                
-                // 웃음 감지 (안전한 계산만 사용)
-                const isSmiling = validCalculation && smileRatio > 1.8 && cornersRaised;
-                const isWideSmile = validCalculation && mouthWidth > 0.08;
+
+                // 웃음 감지 (더 관대한 임계값 사용)
+                const isSmiling = validCalculation && smileRatio > 1.5 && cornersRaised;
+                const isWideSmile = validCalculation && mouthWidth > 0.06;
                 const finalSmile = isSmiling || isWideSmile;
-                
+
                 // 🧪 매우 관대한 테스트 모드 (입만 조금 열어도 웃음)
-                const tempTestMode = validCalculation && mouthHeight > 0.005; // 더 낮은 임계값
-                
+                const tempTestMode = validCalculation && mouthHeight > 0.003; // 더 낮은 임계값
+
                 // 강제로 모든 데이터 화면 표시 (문제 진단용)
                 const safeWidth = isNaN(mouthWidth) ? 'NaN' : mouthWidth.toFixed(3);
                 const safeHeight = isNaN(mouthHeight) ? 'NaN' : mouthHeight.toFixed(3);
                 const safeRatio = isNaN(smileRatio) ? 'NaN' : smileRatio.toFixed(1);
-                
+
                 const mouthInfo = `가로:${safeWidth} 세로:${safeHeight} 비율:${safeRatio}`;
                 const smileInfo = `넓음:${isWideSmile} 올림:${cornersRaised} 테스트:${tempTestMode}`;
                 const finalResult = (finalSmile || tempTestMode) ? '😊 웃음 감지!' : '😐 평상시';
-                
+
                 // 매번 강제로 화면 업데이트
                 this.updateDebugInfo(
                     `✅ 감지됨 (${results.multiFaceLandmarks[0].length}개)`,
                     mouthInfo,
                     `${finalResult} (${smileInfo})`
                 );
-                
+
                 // 추가 디버깅 로그
                 console.log(`🔢 계산 결과: W=${safeWidth}, H=${safeHeight}, R=${safeRatio}, 유효=${validCalculation}`);
-                
+
                 // 테스트 모드도 포함해서 판정
                 return finalSmile || tempTestMode;
             }
@@ -732,15 +683,15 @@
             // 테스트 메서드들
             testConnection() {
                 console.log('연결 테스트 - 연결 ID:', this.connectionId);
-                this.sendMessage({type: 'camera_connected'});
+                this.sendMessage({ type: 'camera_connected' });
                 alert(`연결 테스트 완료!\n연결 ID: ${this.connectionId}`);
             }
 
             testSmile() {
                 console.log('웃음 테스트');
                 this.showSmiling();
-                this.sendMessage({type: 'smile_detected'});
-                
+                this.sendMessage({ type: 'smile_detected' });
+
                 // 컴퓨터 브라우저에서도 확인할 수 있도록 alert
                 alert('웃음 신호 전송됨! 컴퓨터 화면을 확인하세요.');
             }
@@ -748,8 +699,8 @@
             testStopSmile() {
                 console.log('웃음 멈춤 테스트');
                 this.showNeutral();
-                this.sendMessage({type: 'smile_stopped'});
-                
+                this.sendMessage({ type: 'smile_stopped' });
+
                 alert('웃음 멈춤 신호 전송됨!');
             }
         }
@@ -760,4 +711,5 @@
         });
     </script>
 </body>
+
 </html>
