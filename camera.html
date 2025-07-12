@@ -425,6 +425,7 @@
             }
 
             onResults(results) {
+                console.log('🎥 onResults 호출됨 - 프레임 처리 중');
                 const smileResult = this.detectSmile(results);
                 
                 // detectSmile이 null을 리턴하면 계산 오류 - 강제로 웃음 멈춤 처리
@@ -452,18 +453,19 @@
             }
 
             updateDebugInfo(status, mouthData = '', smileResult = '') {
+                // 강제로 모든 필드 업데이트 (빈 문자열이어도)
                 document.getElementById('face-status').textContent = `얼굴 감지: ${status}`;
-                if (mouthData) document.getElementById('mouth-data').textContent = `입 데이터: ${mouthData}`;
-                if (smileResult) document.getElementById('smile-result').textContent = `웃음 감지: ${smileResult}`;
+                document.getElementById('mouth-data').textContent = `입 데이터: ${mouthData || '데이터 없음'}`;
+                document.getElementById('smile-result').textContent = `웃음 감지: ${smileResult || '판정 없음'}`;
             }
 
             detectSmile(results) {
                 if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-                    this.updateDebugInfo('❌ 얼굴 없음');
+                    this.updateDebugInfo('❌ 얼굴 없음', '얼굴을 카메라에 맞춰주세요', '감지 불가');
                     return false;
                 }
                 
-                this.updateDebugInfo(`✅ 감지됨 (${results.multiFaceLandmarks[0].length}개 포인트)`);
+                console.log('📸 프레임 처리 중... 랜드마크 수:', results.multiFaceLandmarks[0].length);
 
                 const landmarks = results.multiFaceLandmarks[0];
                 
@@ -538,20 +540,24 @@
                 // 🧪 매우 관대한 테스트 모드 (입만 조금 열어도 웃음)
                 const tempTestMode = validCalculation && mouthHeight > 0.005; // 더 낮은 임계값
                 
-                // 안전한 화면 표시 (NaN 방지)
-                const safeWidth = isNaN(mouthWidth) ? 'ERR' : mouthWidth.toFixed(3);
-                const safeHeight = isNaN(mouthHeight) ? 'ERR' : mouthHeight.toFixed(3);
-                const safeRatio = isNaN(smileRatio) ? 'ERR' : smileRatio.toFixed(1);
+                // 강제로 모든 데이터 화면 표시 (문제 진단용)
+                const safeWidth = isNaN(mouthWidth) ? 'NaN' : mouthWidth.toFixed(3);
+                const safeHeight = isNaN(mouthHeight) ? 'NaN' : mouthHeight.toFixed(3);
+                const safeRatio = isNaN(smileRatio) ? 'NaN' : smileRatio.toFixed(1);
                 
                 const mouthInfo = `가로:${safeWidth} 세로:${safeHeight} 비율:${safeRatio}`;
                 const smileInfo = `넓음:${isWideSmile} 올림:${cornersRaised} 테스트:${tempTestMode}`;
                 const finalResult = (finalSmile || tempTestMode) ? '😊 웃음 감지!' : '😐 평상시';
                 
+                // 매번 강제로 화면 업데이트
                 this.updateDebugInfo(
                     `✅ 감지됨 (${results.multiFaceLandmarks[0].length}개)`,
                     mouthInfo,
                     `${finalResult} (${smileInfo})`
                 );
+                
+                // 추가 디버깅 로그
+                console.log(`🔢 계산 결과: W=${safeWidth}, H=${safeHeight}, R=${safeRatio}, 유효=${validCalculation}`);
                 
                 // 테스트 모드도 포함해서 판정
                 return finalSmile || tempTestMode;
