@@ -524,8 +524,8 @@
                 const isWideSmile = validCalculation && mouthWidth > 0.08;
                 const finalSmile = isSmiling || isWideSmile;
                 
-                // 🧪 임시 테스트 모드
-                const tempTestMode = validCalculation && mouthHeight > 0.01;
+                // 🧪 매우 관대한 테스트 모드 (입만 조금 열어도 웃음)
+                const tempTestMode = validCalculation && mouthHeight > 0.005; // 더 낮은 임계값
                 
                 // 안전한 화면 표시 (NaN 방지)
                 const safeWidth = isNaN(mouthWidth) ? 'ERR' : mouthWidth.toFixed(3);
