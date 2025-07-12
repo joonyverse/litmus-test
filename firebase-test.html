@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Firebase 연결 테스트</title>
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+    <h1>Firebase 연결 테스트</h1>
+    <button id="test-btn">Firebase 테스트 실행</button>
+    <div id="result"></div>
+    <div id="console-log" style="margin-top: 20px; padding: 10px; background: #f0f0f0; font-family: monospace; white-space: pre-wrap;"></div>
+
+    <script>
+        const resultDiv = document.getElementById('result');
+        const consoleDiv = document.getElementById('console-log');
+        
+        // 콘솔 로그를 화면에도 표시
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            consoleDiv.textContent += 'LOG: ' + args.join(' ') + '\n';
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            consoleDiv.textContent += 'ERROR: ' + args.join(' ') + '\n';
+        };
+
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyDcKY0kO8gqzj2t118Nv6EXA6RVc_p5sHA",
+            authDomain: "litmus-test-5b231.firebaseapp.com",
+            databaseURL: "https://litmus-test-5b231-default-rtdb.firebaseio.com",
+            projectId: "litmus-test-5b231",
+            storageBucket: "litmus-test-5b231.firebasestorage.app",
+            messagingSenderId: "839883886547",
+            appId: "1:839883886547:web:dcc363f296c7ca87c4a926"
+        };
+
+        console.log('Firebase 설정:', firebaseConfig);
+
+        // Firebase 초기화
+        try {
+            if (typeof firebase !== 'undefined') {
+                console.log('Firebase SDK 로드됨');
+                firebase.initializeApp(firebaseConfig);
+                console.log('Firebase 앱 초기화 완료');
+                
+                const database = firebase.database();
+                console.log('Firebase Database 객체 생성 완료');
+                
+                // 테스트 버튼 활성화
+                document.getElementById('test-btn').addEventListener('click', () => {
+                    testFirebase(database);
+                });
+                
+                resultDiv.innerHTML = '<span style="color: green;">✅ Firebase 초기화 성공! 테스트 버튼을 클릭하세요.</span>';
+            } else {
+                throw new Error('Firebase SDK가 로드되지 않았습니다.');
+            }
+        } catch (error) {
+            console.error('Firebase 초기화 오류:', error);
+            resultDiv.innerHTML = '<span style="color: red;">❌ Firebase 초기화 실패: ' + error.message + '</span>';
+        }
+
+        function testFirebase(database) {
+            console.log('Firebase 연결 테스트 시작...');
+            resultDiv.innerHTML = '<span style="color: orange;">⏳ Firebase 테스트 중...</span>';
+            
+            const testRef = database.ref('test');
+            const testData = {
+                message: 'Hello Firebase!',
+                timestamp: Date.now(),
+                userAgent: navigator.userAgent
+            };
+            
+            console.log('테스트 데이터 전송 시도:', testData);
+            
+            testRef.set(testData)
+                .then(() => {
+                    console.log('✅ Firebase 쓰기 성공!');
+                    resultDiv.innerHTML = '<span style="color: green;">✅ Firebase 쓰기 성공!</span>';
+                    
+                    // 읽기 테스트
+                    return testRef.once('value');
+                })
+                .then((snapshot) => {
+                    const data = snapshot.val();
+                    console.log('✅ Firebase 읽기 성공:', data);
+                    resultDiv.innerHTML += '<br><span style="color: green;">✅ Firebase 읽기도 성공!</span>';
+                    resultDiv.innerHTML += '<br><strong>읽은 데이터:</strong> ' + JSON.stringify(data, null, 2);
+                    
+                    // 정리
+                    return testRef.remove();
+                })
+                .then(() => {
+                    console.log('✅ 테스트 데이터 정리 완료');
+                    resultDiv.innerHTML += '<br><span style="color: blue;">✅ 모든 테스트 완료!</span>';
+                })
+                .catch((error) => {
+                    console.error('❌ Firebase 테스트 실패:', error);
+                    resultDiv.innerHTML = '<span style="color: red;">❌ Firebase 테스트 실패: ' + error.message + '</span>';
+                });
+        }
+    </script>
+</body>
+</html>
