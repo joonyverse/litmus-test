@@ -135,7 +135,33 @@
         </div>
     </div>
 
-    <script src="firebase-realtime.js"></script>
+    <script>
+        // Firebase 로딩 대기 후 firebase-realtime.js 로드
+        function waitForFirebase() {
+            if (typeof firebase !== 'undefined') {
+                console.log('✅ Firebase SDK 로드 완료 (camera.html)');
+                loadFirebaseRealtime();
+            } else {
+                console.log('⏳ Firebase SDK 로딩 대기 중... (camera.html)');
+                setTimeout(waitForFirebase, 100);
+            }
+        }
+        
+        function loadFirebaseRealtime() {
+            const script = document.createElement('script');
+            script.src = 'firebase-realtime.js';
+            script.onload = () => {
+                console.log('✅ Firebase Realtime 클라이언트 로드 완료 (camera.html)');
+            };
+            script.onerror = () => {
+                console.error('❌ Firebase Realtime 클라이언트 로드 실패 (camera.html)');
+            };
+            document.head.appendChild(script);
+        }
+        
+        // 페이지 로드 후 Firebase 확인 시작
+        window.addEventListener('load', waitForFirebase);
+    </script>
     <script type="module">
         class SmileDetector {
             constructor() {

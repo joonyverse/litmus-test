@@ -21,23 +21,45 @@ class FirebaseRealtime {
     }
 
     async init() {
+        // Firebase SDK 로딩 대기
+        let attempts = 0;
+        const maxAttempts = 50; // 5초 대기
+        
+        const waitForFirebase = () => {
+            return new Promise((resolve, reject) => {
+                const checkFirebase = () => {
+                    attempts++;
+                    
+                    if (typeof firebase !== 'undefined') {
+                        console.log(`✅ Firebase SDK 로드됨 (${attempts}번째 시도)`);
+                        resolve();
+                    } else if (attempts >= maxAttempts) {
+                        reject(new Error('Firebase SDK 로딩 타임아웃'));
+                    } else {
+                        console.log(`⏳ Firebase SDK 로딩 대기 중... (${attempts}/${maxAttempts})`);
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        };
+
         try {
-            // Firebase 초기화 시도
-            if (typeof firebase !== 'undefined') {
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(this.firebaseConfig);
-                    console.log('Firebase 앱 초기화 완료');
-                }
-                this.db = firebase.database();
-                this.isInitialized = true;
-                console.log('🔥 Firebase Realtime Database 연결 성공!');
-                
-                // 연결 테스트
-                this.testConnection();
-            } else {
-                console.warn('Firebase SDK 로드 실패, localStorage 폴백 사용');
-                this.useFallback();
+            await waitForFirebase();
+            
+            // Firebase 초기화
+            if (!firebase.apps.length) {
+                firebase.initializeApp(this.firebaseConfig);
+                console.log('🔥 Firebase 앱 초기화 완료');
             }
+            
+            this.db = firebase.database();
+            this.isInitialized = true;
+            console.log('🔥 Firebase Realtime Database 연결 성공!');
+            
+            // 연결 테스트
+            this.testConnection();
+            
         } catch (error) {
             console.warn('Firebase 초기화 실패:', error.message);
             this.useFallback();
@@ -113,24 +135,41 @@ class FirebaseRealtime {
     }
 
     setupFirebaseListener() {
-        if (!this.db || !this.connectionId) return;
+        if (!this.db || !this.connectionId) {
+            console.warn('⚠️ Firebase DB 또는 연결 ID 없어서 리스너 설정 불가');
+            return;
+        }
 
         const messagesRef = this.db.ref(`connections/${this.connectionId}/messages`);
+        console.log('📡 Firebase 리스너 설정:', `connections/${this.connectionId}/messages`);
+        console.log('🔗 Firebase 콘솔 확인:', `https://console.firebase.google.com/project/litmus-test-5b231/database/litmus-test-5b231-default-rtdb/data/connections/${this.connectionId}`);
         
         // 새 메시지 리스너
         messagesRef.on('child_added', (snapshot) => {
             const data = snapshot.val();
+            console.log('📨 Firebase에서 메시지 수신:', data);
+            
             if (data && this.messageCallback) {
-                console.log('Firebase 메시지 수신:', data);
+                console.log('📨 메시지 콜백 실행:', data);
                 this.messageCallback(data);
                 
                 // 메시지 처리 후 삭제 (정리)
-                snapshot.ref.remove();
+                snapshot.ref.remove().then(() => {
+                    console.log('🗑️ 처리된 메시지 삭제 완료');
+                });
             }
+        });
+        
+        // 연결 상태 모니터링
+        messagesRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            console.log('📊 현재 Firebase 데이터:', data);
         });
     }
 
     sendMessage(data, from = 'unknown') {
+        console.log('📤 sendMessage 호출됨:', { data, from, isInitialized: this.isInitialized, hasDB: !!this.db, connectionId: this.connectionId });
+        
         if (!this.isInitialized) {
             console.warn('Firebase 초기화 대기 중...');
             setTimeout(() => this.sendMessage(data, from), 500);
@@ -144,18 +183,29 @@ class FirebaseRealtime {
             timestamp: Date.now()
         };
 
-        console.log('메시지 전송:', message);
+        console.log('📤 전송할 메시지:', message);
 
         if (this.db && this.connectionId) {
             // Firebase로 전송
             try {
-                this.db.ref(`connections/${this.connectionId}/messages`).push(message);
-                console.log('Firebase로 메시지 전송 성공');
+                const messagesRef = this.db.ref(`connections/${this.connectionId}/messages`);
+                console.log('📤 Firebase 경로:', `connections/${this.connectionId}/messages`);
+                
+                messagesRef.push(message)
+                    .then(() => {
+                        console.log('✅ Firebase로 메시지 전송 성공');
+                    })
+                    .catch((error) => {
+                        console.error('❌ Firebase 전송 실패:', error);
+                        this.sendViaFallback(message);
+                    });
+                    
             } catch (error) {
-                console.warn('Firebase 전송 실패, 폴백 사용:', error);
+                console.warn('❌ Firebase 전송 시도 실패, 폴백 사용:', error);
                 this.sendViaFallback(message);
             }
         } else {
+            console.warn('⚠️ Firebase DB 또는 연결 ID 없음, 폴백 사용');
             // 폴백 방법 사용
             this.sendViaFallback(message);
         }
