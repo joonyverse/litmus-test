@@ -423,14 +423,32 @@
                     return;
                 }
 
+                // 휴대폰 최적화: 세로 모드 우선, 가로 모드 대응
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const isPortrait = window.innerHeight > window.innerWidth;
+
+                let cameraWidth, cameraHeight;
+
+                if (isMobile && isPortrait) {
+                    // 휴대폰 세로 모드: 세로가 더 긴 해상도
+                    cameraWidth = 360;
+                    cameraHeight = 640;
+                    console.log('📱 휴대폰 세로 모드 설정:', cameraWidth, 'x', cameraHeight);
+                } else {
+                    // 데스크톱 또는 가로 모드: 가로가 더 긴 해상도
+                    cameraWidth = 640;
+                    cameraHeight = 360;
+                    console.log('🖥️ 데스크톱/가로 모드 설정:', cameraWidth, 'x', cameraHeight);
+                }
+
                 this.camera = new Camera(this.video, {
                     onFrame: async () => {
                         if (this.faceMesh) {
                             await this.faceMesh.send({ image: this.video });
                         }
                     },
-                    width: 640,  // 랜드스케이프 모드 (가로가 더 긴 해상도)
-                    height: 360
+                    width: cameraWidth,
+                    height: cameraHeight
                 });
             }
 
@@ -518,6 +536,19 @@
                 this.canvas.style.width = actualWidth + 'px';
                 this.canvas.style.height = actualHeight + 'px';
 
+                // 휴대폰 최적화: 좌표 변환 정보 로깅
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile && this.frameCount % 30 === 0) { // 30프레임마다 한 번씩만 로그
+                    console.log('📱 휴대폰 좌표 변환 정보:', {
+                        videoWidth: this.video.videoWidth,
+                        videoHeight: this.video.videoHeight,
+                        displayWidth: actualWidth,
+                        displayHeight: actualHeight,
+                        aspectRatio: this.video.videoWidth / this.video.videoHeight,
+                        displayAspectRatio: actualWidth / actualHeight
+                    });
+                }
+
                 // 캔버스 지우기
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -585,6 +616,9 @@
                     return false;
                 }
 
+                // 휴대폰 감지 (한 번만 선언)
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
                 // 모든 프레임에서 랜드마크 수 로그 출력
                 console.log('📸 랜드마크 수:', results.multiFaceLandmarks[0].length);
 
@@ -651,18 +685,21 @@
                     });
                 }
 
-                // 좌표값 유효성 검사 (MediaPipe 좌표값은 0~1 범위)
+                // 좌표값 유효성 검사 (MediaPipe 좌표값은 0~1 범위, 휴대폰에서는 더 관대하게)
                 const isValidCoordinate = (coord) => {
                     if (coord === null || coord === undefined) return false;
                     if (typeof coord !== 'number') return false;
                     if (!isFinite(coord)) return false; // Infinity, -Infinity, NaN 체크
-                    if (coord < 0 || coord > 1) return false; // 0~1 범위 체크
+
+                    // 휴대폰에서는 좌표 범위를 더 관대하게 허용 (카메라 회전 등으로 인한 오차)
+                    const maxCoord = isMobile ? 1.2 : 1.0;
+                    if (coord < -0.1 || coord > maxCoord) return false;
                     return true;
                 };
 
                 if (!isValidCoordinate(leftMouth.x) || !isValidCoordinate(rightMouth.x) ||
                     !isValidCoordinate(upperMouth.y) || !isValidCoordinate(lowerMouth.y)) {
-                    console.log('❌ 좌표값 이상');
+                    console.log('❌ 좌표값 이상 (휴대폰:', isMobile, ')');
                     this.updateDebugInfo('✅ 감지됨', '❌ 좌표값 이상', '🚫 강제 멈춤');
                     return null;
                 }
@@ -696,13 +733,19 @@
                     return null; // null 리턴으로 강제 웃음 멈춤 신호
                 }
 
-                // 웃음 감지 (더 관대한 임계값 사용)
-                const isSmiling = validCalculation && smileRatio > 1.5 && cornersRaised;
-                const isWideSmile = validCalculation && mouthWidth > 0.06;
+                // 웃음 감지 (휴대폰에서는 더 관대한 임계값 사용)
+
+                // 휴대폰에서는 더 관대한 임계값 사용
+                const smileRatioThreshold = isMobile ? 1.2 : 1.5;
+                const mouthWidthThreshold = isMobile ? 0.04 : 0.06;
+                const mouthHeightThreshold = isMobile ? 0.002 : 0.003;
+
+                const isSmiling = validCalculation && smileRatio > smileRatioThreshold && cornersRaised;
+                const isWideSmile = validCalculation && mouthWidth > mouthWidthThreshold;
                 const finalSmile = isSmiling || isWideSmile;
 
                 // 🧪 매우 관대한 테스트 모드 (입만 조금 열어도 웃음)
-                const tempTestMode = validCalculation && mouthHeight > 0.003; // 더 낮은 임계값
+                const tempTestMode = validCalculation && mouthHeight > mouthHeightThreshold;
 
                 // 강제로 모든 데이터 화면 표시 (문제 진단용)
                 const safeWidth = isNaN(mouthWidth) ? 'NaN' : mouthWidth.toFixed(3);
