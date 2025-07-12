@@ -486,20 +486,31 @@
                     lowerMouth = landmarks[14];
                 }
                 
-                // 랜드마크 유효성 검사 (화면에 간단히 표시)
-                if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
-                    console.log('❌ 입 랜드마크 일부 누락');
-                }
+                // 랜드마크 상세 검사
+                console.log('🔍 랜드마크 상태:', {
+                    leftMouth: leftMouth ? 'OK' : 'NULL',
+                    rightMouth: rightMouth ? 'OK' : 'NULL', 
+                    upperMouth: upperMouth ? 'OK' : 'NULL',
+                    lowerMouth: lowerMouth ? 'OK' : 'NULL'
+                });
                 
                 if (!leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
-                    this.updateDebugInfo('✅ 감지됨', '❌ 입 랜드마크 없음', '🚫 강제 멈춤');
-                    return null; // 랜드마크 없으면 강제 웃음 멈춤
+                    console.log('❌ 입 랜드마크 일부 누락 - 인덱스 문제일 수 있음');
+                    this.updateDebugInfo('✅ 감지됨', '❌ 랜드마크 인덱스 오류', '🚫 강제 멈춤');
+                    return null;
                 }
                 
-                // 안전한 계산을 위한 유효성 검사
+                // 좌표 타입 검사
+                console.log('🔍 좌표 값:', {
+                    leftX: leftMouth.x, leftY: leftMouth.y,
+                    rightX: rightMouth.x, rightY: rightMouth.y,
+                    upperY: upperMouth.y, lowerY: lowerMouth.y
+                });
+                
                 if (typeof leftMouth.x !== 'number' || typeof rightMouth.x !== 'number' ||
                     typeof upperMouth.y !== 'number' || typeof lowerMouth.y !== 'number') {
-                    this.updateDebugInfo('✅ 감지됨', '❌ 랜드마크 좌표 오류', '🚫 강제 멈춤');
+                    console.log('❌ 좌표 타입 오류');
+                    this.updateDebugInfo('✅ 감지됨', '❌ 좌표 타입 오류', '🚫 강제 멈춤');
                     return null;
                 }
                 
