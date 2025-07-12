@@ -117,8 +117,10 @@
         </div>
 
         <div style="position: relative;">
-            <video id="video" autoplay muted playsinline style="transform: scaleX(-1);"></video>
-            <canvas id="output" style="position: absolute; left: 0; top: 0; transform: scaleX(-1);"></canvas>
+            <video id="video" autoplay muted playsinline
+                style="transform: scaleX(-1); width: 100%; max-width: 300px; border-radius: 10px;"></video>
+            <canvas id="output"
+                style="position: absolute; left: 0; top: 0; transform: scaleX(-1); pointer-events: none; width: 100%; max-width: 300px; border-radius: 10px;"></canvas>
         </div>
 
         <div id="status" class="status-connecting">연결 중...</div>
@@ -366,6 +368,24 @@
                 document.getElementById('test-connection').addEventListener('click', () => this.testConnection());
                 document.getElementById('test-smile').addEventListener('click', () => this.testSmile());
                 document.getElementById('test-stop-smile').addEventListener('click', () => this.testStopSmile());
+
+                // 비디오 크기 변경 감지
+                this.video.addEventListener('loadedmetadata', () => {
+                    console.log('📐 비디오 메타데이터 로드됨:', {
+                        videoWidth: this.video.videoWidth,
+                        videoHeight: this.video.videoHeight,
+                        displayWidth: this.video.offsetWidth,
+                        displayHeight: this.video.offsetHeight
+                    });
+                });
+
+                // 윈도우 리사이즈 시 캔버스 크기 조정
+                window.addEventListener('resize', () => {
+                    if (this.video.videoWidth > 0) {
+                        console.log('🔄 윈도우 리사이즈 - 캔버스 크기 조정');
+                        // 다음 프레임에서 랜드마크가 다시 그려질 때 크기가 조정됨
+                    }
+                });
             }
 
             async setupFaceMesh() {
@@ -479,9 +499,24 @@
             }
 
             drawLandmarks(results) {
-                // 캔버스 크기를 비디오에 맞춤
-                this.canvas.width = this.video.videoWidth;
-                this.canvas.height = this.video.videoHeight;
+                // 비디오의 실제 표시 크기 계산
+                const videoRect = this.video.getBoundingClientRect();
+
+                // 캔버스 크기를 비디오 표시 크기에 맞춤
+                this.canvas.width = videoRect.width;
+                this.canvas.height = videoRect.height;
+
+                // 디버깅용 로그 (너무 자주 출력되지 않도록)
+                if (this.frameCount % 30 === 0) {
+                    console.log('📐 캔버스 크기 조정:', {
+                        videoWidth: this.video.videoWidth,
+                        videoHeight: this.video.videoHeight,
+                        displayWidth: videoRect.width,
+                        displayHeight: videoRect.height,
+                        canvasWidth: this.canvas.width,
+                        canvasHeight: this.canvas.height
+                    });
+                }
 
                 // 캔버스 지우기
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -493,6 +528,7 @@
                         for (let i = 0; i < landmarks.length; i++) {
                             const landmark = landmarks[i];
                             if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
+                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환
                                 const x = landmark.x * this.canvas.width;
                                 const y = landmark.y * this.canvas.height;
 
@@ -511,6 +547,7 @@
                         for (const index of mouthIndices) {
                             const landmark = landmarks[index];
                             if (landmark && typeof landmark.x === 'number' && typeof landmark.y === 'number') {
+                                // MediaPipe 좌표(0~1)를 캔버스 좌표로 변환
                                 const x = landmark.x * this.canvas.width;
                                 const y = landmark.y * this.canvas.height;
 
