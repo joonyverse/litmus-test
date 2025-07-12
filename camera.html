@@ -383,6 +383,31 @@
                     this.showError('얼굴 메쉬 라이브러리 로딩 실패');
                 }
             }
+            
+            async restartMediaPipe() {
+                try {
+                    console.log('🔄 MediaPipe Face Mesh 재시작 중...');
+                    
+                    // 기존 Face Mesh 정리
+                    if (this.faceMesh) {
+                        this.faceMesh.close();
+                        this.faceMesh = null;
+                    }
+                    
+                    // 잠시 대기 (GPU 메모리 정리)
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Face Mesh 재생성
+                    await this.setupFaceMesh();
+                    
+                    console.log('✅ MediaPipe 재시작 완료');
+                    this.updateDebugInfo('🔄 MediaPipe 재시작됨', '대기 중...', '재시작 완료');
+                    
+                } catch (error) {
+                    console.error('❌ MediaPipe 재시작 실패:', error);
+                    this.updateDebugInfo('❌ 재시작 실패', error.message, '오류');
+                }
+            }
 
             setupCamera() {
                 // 카메라 지원 확인
@@ -524,9 +549,21 @@
                 
                 if (!isValidCoordinate(leftMouth.x) || !isValidCoordinate(rightMouth.x) ||
                     !isValidCoordinate(upperMouth.y) || !isValidCoordinate(lowerMouth.y)) {
-                    console.log('❌ 좌표값 이상 - MediaPipe 오작동');
-                    this.updateDebugInfo('✅ 감지됨', '❌ 좌표값 이상 (MediaPipe 오류)', '🚫 강제 멈춤');
+                    console.log('❌ 좌표값 이상 - MediaPipe 재시작 필요');
+                    this.errorCount = (this.errorCount || 0) + 1;
+                    
+                    // 연속 에러가 5번 이상이면 MediaPipe 재시작
+                    if (this.errorCount >= 5) {
+                        console.log('🔄 MediaPipe 재시작 시도');
+                        this.restartMediaPipe();
+                        this.errorCount = 0;
+                    }
+                    
+                    this.updateDebugInfo('✅ 감지됨', `❌ 좌표값 이상 (에러 ${this.errorCount}/5)`, '🚫 강제 멈춤');
                     return null;
+                } else {
+                    // 정상적인 좌표가 나오면 에러 카운트 리셋
+                    this.errorCount = 0;
                 }
                 
                 // 입 가로 길이 계산
