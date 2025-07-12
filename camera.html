@@ -15,7 +15,7 @@
         }
 
         .container {
-            max-width: 400px;
+            max-width: 500px;
             margin: 0 auto;
             background: white;
             border-radius: 10px;
@@ -118,9 +118,9 @@
 
         <div style="position: relative;">
             <video id="video" autoplay muted playsinline
-                style=" width: 100%; max-width: 300px; border-radius: 10px;"></video>
+                style="width: 100%; max-width: 400px; border-radius: 10px;"></video>
             <canvas id="output"
-                style="position: absolute; left: 0; top: 0; pointer-events: none; width: 100%; max-width: 300px; border-radius: 10px;"></canvas>
+                style="position: absolute; left: 0; top: 0; pointer-events: none; width: 100%; max-width: 400px; border-radius: 10px;"></canvas>
         </div>
 
         <div id="status" class="status-connecting">연결 중...</div>
@@ -428,8 +428,8 @@
                             await this.faceMesh.send({ image: this.video });
                         }
                     },
-                    width: 320,  // 해상도 낮춤 (동기화 부담 감소)
-                    height: 240
+                    width: 640,  // 랜드스케이프 모드 (가로가 더 긴 해상도)
+                    height: 360
                 });
             }
 
