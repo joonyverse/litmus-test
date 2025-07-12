@@ -544,16 +544,15 @@
 
             drawFaceLandmarks(landmarks) {
                 if (window.drawConnectors) {
-                    window.drawConnectors(landmarks, window.FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
-                    window.drawConnectors(landmarks, window.FACEMESH_RIGHT_EYEBROW, { color: '#FF3030' });
-                    window.drawConnectors(landmarks, window.FACEMESH_LEFT_EYEBROW, { color: '#FF3030' });
-                    window.drawConnectors(landmarks, window.FACEMESH_LEFT_EYE, { color: '#30FF30' });
-                    window.drawConnectors(landmarks, window.FACEMESH_RIGHT_EYE, { color: '#30FF30' });
-                    window.drawConnectors(landmarks, window.FACEMESH_LEFT_IRIS, { color: '#FF3030' });
-                    window.drawConnectors(landmarks, window.FACEMESH_RIGHT_IRIS, { color: '#FF3030' });
-                    window.drawConnectors(landmarks, window.FACEMESH_LIPS, { color: '#E0E0E0' });
-                    window.drawConnectors(landmarks, window.FACEMESH_FACE_OVAL, { color: '#E0E0E0' });
-                    window.drawLandmarks(landmarks, { color: '#FF0000', lineWidth: 1 });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_TESSELATION, { color: '#C0C0C0', lineWidth: 1 });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_RIGHT_EYEBROW, { color: '#FF3030' });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_LEFT_EYEBROW, { color: '#FF3030' });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_LEFT_EYE, { color: '#30FF30' });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_RIGHT_EYE, { color: '#30FF30' });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_LEFT_IRIS, { color: '#FF3030' });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_RIGHT_IRIS, { color: '#FF3030' });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_LIPS, { color: '#E0E0E0' });
+                    window.drawConnectors(this.ctx, landmarks, window.FACEMESH_FACE_OVAL, { color: '#E0E0E0' });
                 } else {
                     this.drawFallbackLandmarks(landmarks);
                 }
