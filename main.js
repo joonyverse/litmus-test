@@ -428,6 +428,32 @@ function updateBackgroundColor(color) {
     layerManager.composite();
 }
 
+// 화남 감지 시 배경 색상 변경
+let originalBackgroundColor = null;
+let isAngryMode = false;
+
+function onAngryDetected() {
+    if (!isAngryMode) {
+        // 원래 배경 색상 저장
+        originalBackgroundColor = options.backgroundColor;
+        isAngryMode = true;
+        
+        // 빨간색으로 변경
+        updateBackgroundColor('#ff4444');
+        console.log('😡 화남 감지 - 배경을 빨간색으로 변경');
+    }
+}
+
+function onAngryStop() {
+    if (isAngryMode && originalBackgroundColor) {
+        isAngryMode = false;
+        
+        // 원래 색상으로 복구
+        updateBackgroundColor(originalBackgroundColor);
+        console.log('😐 화남 멈춤 - 배경을 원래 색상으로 복구');
+    }
+}
+
 // 이벤트 리스너 설정
 window.addEventListener('resize', () => {
     drawPattern();
@@ -552,6 +578,8 @@ window.redrawEffects = redrawEffects;
 window.updateBackgroundColor = updateBackgroundColor;
 window.updateBarColors = updateBarColors;
 window.clearIndividualColors = clearIndividualColors; // 개별 색상 초기화 함수 노출
+window.onAngryDetected = onAngryDetected; // 화남 감지 콜백 노출
+window.onAngryStop = onAngryStop; // 화남 멈춤 콜백 노출
 
 // 색상 선택 UI 생성 함수
 function createColorPicker() {

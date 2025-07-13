@@ -7,23 +7,43 @@ class LocalSmileDetector {
         this.faceMesh = null;
         this.camera = null;
         this.isSmiling = false;
+        this.isAngry = false;
         this.isActive = false;
         this.onSmileCallback = null;
         this.onStopSmileCallback = null;
+        this.onAngryCallback = null;
+        this.onStopAngryCallback = null;
 
-        // 웃음 감지 파라미터들 (조절 가능)
+        // 웃음 및 화남 감지 파라미터들 (조절 가능)
         this.smileParams = {
+            // 웃음 감지 파라미터
             smileRatioThreshold: 1.8,    // 웃음 비율 임계값 (가로/세로 비율)
             wideSmileThreshold: 0.08,    // 넓은 웃음 임계값 (입 가로 길이)
             cornerRaiseStrength: 1.0,    // 입꼴리 올라감 감도 (0.5-2.0)
             detectionSensitivity: 1.0,   // 전체 감지 감도 (0.1-3.0)
-            stabilityFrames: 3,          // 안정성을 위한 연속 프레임 수
-            debug: false                 // 디버그 정보 표시
+            stabilityFrames: 2,          // 안정성을 위한 연속 프레임 수 (3→2로 줄여서 더 빠른 반응)
+            debug: false,                // 디버그 정보 표시
+
+            // 감정 감지 활성화/비활성화
+            smileEnabled: true,              // 웃음 감지 활성화/비활성화
+            angryEnabled: true,              // 화남 감지 활성화/비활성화
+
+            // 화남 감지 파라미터 (민감도 낮춤)
+            angryBrowEyeThreshold: 0.015,    // 눈썹-눈 거리 임계값 (0.025→0.015로 더 엄격하게)
+            angryMouthThreshold: 0.015,      // 입꼬리 내림 임계값 (0.002→0.005로 더 엄격하게)
+            angryMouthCompressThreshold: 0.005, // 입 압축 임계값 (0.008→0.005로 더 엄격하게)
+            angryEyeSquintThreshold: 0.005,   // 눈 찡그림 임계값 (0.008→0.005로 더 엄격하게)
+            angryCheekThreshold: 0.03,       // 볼 긴장 임계값 (0.04→0.03으로 더 엄격하게)
+            angryRequiredConditions: 2       // 필요한 조건 개수 (OR→AND 방식으로 변경)
         };
 
         // 웃음 상태 안정성을 위한 프레임 카운터
         this.smileFrameCount = 0;
         this.noSmileFrameCount = 0;
+
+        // 화남 상태 안정성을 위한 프레임 카운터
+        this.angryFrameCount = 0;
+        this.noAngryFrameCount = 0;
 
         this.init();
     }
@@ -401,18 +421,57 @@ class LocalSmileDetector {
         // 웃음 감지
         const currentlySmiling = this.detectSmile(results);
 
+        // 화남 감지
+        const currentlyAngry = this.detectAngry(results);
+
         if (currentlySmiling !== this.isSmiling) {
             this.isSmiling = currentlySmiling;
 
             if (this.isSmiling) {
                 console.log('😊 웃음 감지됨 (로컬)');
+                // EmotionHandler에게 직접 전달
+                if (window.emotionHandler) {
+                    window.emotionHandler.onSmileDetected();
+                }
+                // 기존 콜백도 유지 (호환성)
                 if (this.onSmileCallback) {
                     this.onSmileCallback();
                 }
             } else {
                 console.log('😐 웃음 멈춤 (로컬)');
+                // EmotionHandler에게 직접 전달
+                if (window.emotionHandler) {
+                    window.emotionHandler.onSmileStopped();
+                }
+                // 기존 콜백도 유지 (호환성)
                 if (this.onStopSmileCallback) {
                     this.onStopSmileCallback();
+                }
+            }
+        }
+
+        if (currentlyAngry !== this.isAngry) {
+            this.isAngry = currentlyAngry;
+
+            if (this.isAngry) {
+                console.log('😡 화남 감지됨 (로컬)');
+                // EmotionHandler에게 직접 전달
+                if (window.emotionHandler) {
+                    window.emotionHandler.onAngryDetected();
+                }
+                // 기존 콜백도 유지 (호환성)
+                if (this.onAngryCallback) {
+                    this.onAngryCallback();
+                }
+            } else {
+                console.log('😐 화남 멈춤 (로컬)');
+                // EmotionHandler에게 직접 전달
+                if (window.emotionHandler) {
+                    window.emotionHandler.onAngryStopped();
+                }
+                // 기존 콜백도 유지 (호환성)
+                if (this.onStopAngryCallback) {
+                    this.onStopAngryCallback();
                 }
             }
         }
@@ -492,6 +551,13 @@ class LocalSmileDetector {
 
 
     detectSmile(results) {
+        // 웃음 감지가 비활성화된 경우 항상 false 반환
+        if (!this.smileParams.smileEnabled) {
+            this.noSmileFrameCount++;
+            this.smileFrameCount = 0;
+            return this.stabilizeSmileDetection(false);
+        }
+
         if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
             this.noSmileFrameCount++;
             this.smileFrameCount = 0;
@@ -590,6 +656,188 @@ class LocalSmileDetector {
         this.ctx.fillText(`Smile: ${currentSmile ? '😊' : '😐'}`, 15, 75);
     }
 
+    detectAngry(results) {
+        if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+            this.noAngryFrameCount++;
+            this.angryFrameCount = 0;
+            return this.stabilizeAngryDetection(false);
+        }
+
+        const landmarks = results.multiFaceLandmarks[0];
+
+        // 눈썹 관련 랜드마크 (화남 표정에서 눈썹이 아래로 내려감)
+        const leftEyebrowInner = landmarks[55];  // 왼쪽 눈썹 안쪽
+        const rightEyebrowInner = landmarks[285]; // 오른쪽 눈썹 안쪽
+        const leftEye = landmarks[33];           // 왼쪽 눈
+        const rightEye = landmarks[263];         // 오른쪽 눈
+
+        // 입 관련 랜드마크 (화남 표정에서 입꼬리가 아래로)
+        const leftMouth = landmarks[61];   // 입 왼쪽 끝
+        const rightMouth = landmarks[291]; // 입 오른쪽 끝
+        const upperMouth = landmarks[13];  // 윗입술 중앙
+        const lowerMouth = landmarks[14];  // 아랫입술 중앙
+
+        if (!leftEyebrowInner || !rightEyebrowInner || !leftEye || !rightEye ||
+            !leftMouth || !rightMouth || !upperMouth || !lowerMouth) {
+            this.noAngryFrameCount++;
+            this.angryFrameCount = 0;
+            return this.stabilizeAngryDetection(false);
+        }
+
+        // 눈썹과 눈 사이의 거리 (화남 표정에서 가까워짐)
+        const leftBrowEyeDistance = Math.abs(leftEyebrowInner.y - leftEye.y);
+        const rightBrowEyeDistance = Math.abs(rightEyebrowInner.y - rightEye.y);
+        const avgBrowEyeDistance = (leftBrowEyeDistance + rightBrowEyeDistance) / 2;
+
+        // 화남 감지가 비활성화된 경우 항상 false 반환
+        if (!this.smileParams.angryEnabled) {
+            this.noAngryFrameCount++;
+            this.angryFrameCount = 0;
+            return this.stabilizeAngryDetection(false);
+        }
+
+        // 입꼬리가 아래로 내려갔는지 확인 (화남 표정)
+        const mouthCenterY = (upperMouth.y + lowerMouth.y) / 2;
+        const leftCornerDown = (leftMouth.y - mouthCenterY) > this.smileParams.angryMouthThreshold;
+        const rightCornerDown = (rightMouth.y - mouthCenterY) > this.smileParams.angryMouthThreshold;
+
+        // 화남 감지 조건들 (파라미터 기반)
+
+        // 1. 눈썹-눈 거리 (더 엄격하게)
+        const eyebrowsClose = avgBrowEyeDistance < this.smileParams.angryBrowEyeThreshold;
+
+        // 2. 입꼬리 내림 (양쪽 모두 내려가야 함으로 변경)
+        const mouthCornersDown = leftCornerDown && rightCornerDown;
+
+        // 3. 입술 압축 감지
+        const mouthHeight = Math.abs(upperMouth.y - lowerMouth.y);
+        const mouthCompressed = mouthHeight < this.smileParams.angryMouthCompressThreshold;
+
+        // 4. 눈 찡그림 감지
+        const leftEyeHeight = Math.abs(landmarks[159].y - landmarks[145].y);
+        const rightEyeHeight = Math.abs(landmarks[386].y - landmarks[374].y);
+        const avgEyeHeight = (leftEyeHeight + rightEyeHeight) / 2;
+        const eyesSquinting = avgEyeHeight < this.smileParams.angryEyeSquintThreshold;
+
+        // 5. 얼굴 근육 긴장 (광대뼈 부분)
+        const leftCheek = landmarks[116];
+        const rightCheek = landmarks[345];
+        const noseTip = landmarks[1];
+        const cheekTension = Math.abs(leftCheek.y - noseTip.y) < this.smileParams.angryCheekThreshold ||
+            Math.abs(rightCheek.y - noseTip.y) < this.smileParams.angryCheekThreshold;
+
+        // 조건들 카운트
+        const conditions = [eyebrowsClose, mouthCornersDown, mouthCompressed, eyesSquinting, cheekTension];
+        const satisfiedConditions = conditions.filter(Boolean).length;
+
+        // 지정된 개수 이상의 조건을 만족해야 화남으로 감지
+        const isAngry = satisfiedConditions >= this.smileParams.angryRequiredConditions;
+
+        // 디버그 정보 표시
+        if (this.smileParams.debug) {
+            this.drawAngryDebugInfo({
+                browEyeDistance: avgBrowEyeDistance,
+                eyebrowsClose: eyebrowsClose,
+                mouthDown: mouthCornersDown,
+                mouthCompressed: mouthCompressed,
+                eyesSquinting: eyesSquinting,
+                cheekTension: cheekTension,
+                satisfiedConditions: satisfiedConditions,
+                requiredConditions: this.smileParams.angryRequiredConditions,
+                currentAngry: isAngry
+            });
+        }
+
+        // 프레임 카운터 업데이트
+        if (isAngry) {
+            this.angryFrameCount++;
+            this.noAngryFrameCount = 0;
+        } else {
+            this.noAngryFrameCount++;
+            this.angryFrameCount = 0;
+        }
+
+        return this.stabilizeAngryDetection(isAngry);
+    }
+
+    stabilizeAngryDetection(currentAngry) {
+        // 안정성을 위한 연속 프레임 확인
+        if (currentAngry && this.angryFrameCount >= this.smileParams.stabilityFrames) {
+            return true;
+        } else if (!currentAngry && this.noAngryFrameCount >= this.smileParams.stabilityFrames) {
+            return false;
+        }
+
+        // 현재 상태 유지
+        return this.isAngry;
+    }
+
+    drawAngryDebugInfo(debugData) {
+        if (!this.ctx) return;
+
+        // 디버그 정보를 카메라 화면 오른쪽 상단에 표시 (더 큰 박스)
+        this.ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+        this.ctx.fillRect(this.canvas.width - 280, 10, 270, 160);
+
+        this.ctx.font = '10px Arial';
+
+        let y = 25;
+
+        // 조건 만족 상태 표시
+        this.ctx.fillStyle = '#FFFF00';
+        this.ctx.fillText(`조건: ${debugData.satisfiedConditions}/${debugData.requiredConditions} 만족`, this.canvas.width - 275, y);
+        y += 15;
+
+        // 각 조건별로 OK/FAIL 표시
+        // 1. 눈썹-눈 거리
+        this.ctx.fillStyle = debugData.eyebrowsClose ? '#00FF00' : '#FFFFFF';
+        const browStatus = debugData.eyebrowsClose ? '✓' : '✗';
+        this.ctx.fillText(`눈썹: ${debugData.browEyeDistance.toFixed(3)} ${browStatus}`, this.canvas.width - 275, y);
+        y += 13;
+
+        // 2. 입꼬리 내림
+        this.ctx.fillStyle = debugData.mouthDown ? '#00FF00' : '#FFFFFF';
+        const mouthStatus = debugData.mouthDown ? '✓' : '✗';
+        this.ctx.fillText(`입꼬리: ${mouthStatus}`, this.canvas.width - 275, y);
+        y += 13;
+
+        // 3. 입 압축
+        this.ctx.fillStyle = debugData.mouthCompressed ? '#00FF00' : '#FFFFFF';
+        const compressStatus = debugData.mouthCompressed ? '✓' : '✗';
+        this.ctx.fillText(`입압축: ${compressStatus}`, this.canvas.width - 275, y);
+        y += 13;
+
+        // 4. 눈 찡그림
+        this.ctx.fillStyle = debugData.eyesSquinting ? '#00FF00' : '#FFFFFF';
+        const squintStatus = debugData.eyesSquinting ? '✓' : '✗';
+        this.ctx.fillText(`눈찡그림: ${squintStatus}`, this.canvas.width - 275, y);
+        y += 13;
+
+        // 5. 볼 긴장
+        this.ctx.fillStyle = debugData.cheekTension ? '#00FF00' : '#FFFFFF';
+        const cheekStatus = debugData.cheekTension ? '✓' : '✗';
+        this.ctx.fillText(`볼긴장: ${cheekStatus}`, this.canvas.width - 275, y);
+        y += 13;
+
+        // 최종 결과
+        this.ctx.fillStyle = debugData.currentAngry ? '#FF0000' : '#FFFFFF';
+        this.ctx.font = 'bold 12px Arial';
+        this.ctx.fillText(`화남: ${debugData.currentAngry ? '😡 감지됨!' : '😐 미감지'}`, this.canvas.width - 275, y);
+        y += 15;
+
+        // 간단한 가이드 추가
+        y += 20;
+        this.ctx.font = '10px Arial';
+        this.ctx.fillStyle = '#FFFF00';
+        this.ctx.fillText(`화남 표정 팁:`, this.canvas.width - 255, y);
+        y += 12;
+        this.ctx.fillText(`• 입꼬리 내리기 (한쪽만도 OK)`, this.canvas.width - 255, y);
+        y += 12;
+        this.ctx.fillText(`• 입 꽉 다물기`, this.canvas.width - 255, y);
+        y += 12;
+        this.ctx.fillText(`• 눈 찡그리기`, this.canvas.width - 255, y);
+    }
+
     // 콜백 설정
     setSmileCallback(callback) {
         this.onSmileCallback = callback;
@@ -597,6 +845,14 @@ class LocalSmileDetector {
 
     setStopSmileCallback(callback) {
         this.onStopSmileCallback = callback;
+    }
+
+    setAngryCallback(callback) {
+        this.onAngryCallback = callback;
+    }
+
+    setStopAngryCallback(callback) {
+        this.onStopAngryCallback = callback;
     }
 
     // PIP 카메라 토글

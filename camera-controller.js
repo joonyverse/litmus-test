@@ -212,6 +212,14 @@ class CameraController {
                 console.log('😐 웃음 멈춤!');
                 this.onSmileStopped();
                 break;
+            case 'angry_detected':
+                console.log('😡 화남 감지됨!');
+                this.onAngryDetected();
+                break;
+            case 'angry_stopped':
+                console.log('😐 화남 멈춤!');
+                this.onAngryStopped();
+                break;
             case 'test_message':
                 console.log('🧪 테스트 메시지 수신:', data.message);
                 break;
@@ -238,104 +246,33 @@ class CameraController {
     }
 
     onSmileDetected() {
-        console.log('웃음 감지됨! 선 색상을 파란색으로 변경');
-        this.changeLinesToBlue();
+        // EmotionHandler에게 위임
+        if (window.emotionHandler) {
+            window.emotionHandler.onSmileDetected();
+        }
     }
 
     onSmileStopped() {
-        console.log('웃음 멈춤, 원래 색상으로 복원');
-        this.restoreOriginalColors();
-    }
-
-    changeLinesToBlue() {
-        // options 객체가 로드될 때까지 대기
-        if (!window.options) {
-            setTimeout(() => this.changeLinesToBlue(), 100);
-            return;
-        }
-
-        // 원래 색상 저장 (처음 한 번만)
-        if (!this.originalColors) {
-            this.originalColors = {
-                // Line 색상 (막대 위의 선들)
-                lineColor1: window.options.lineColor1,
-                lineColor2: window.options.lineColor2,
-                lineColor3: window.options.lineColor3,
-                lineColor4: window.options.lineColor4,
-                lineColor5: window.options.lineColor5,
-                lineColor6: window.options.lineColor6,
-                // Bar 색상 (수채화 막대들)
-                barColor1: window.options.barColor1,
-                barColor2: window.options.barColor2,
-                barColor3: window.options.barColor3,
-                barColor4: window.options.barColor4,
-                barColor5: window.options.barColor5,
-                barColor6: window.options.barColor6
-            };
-        }
-
-        const blueColor = '#0066ff';
-        
-        // 모든 것을 파란색으로 변경!
-        // 선 색상 변경 (막대 위의 가로선들)
-        window.options.lineColor1 = blueColor;
-        window.options.lineColor2 = blueColor;
-        window.options.lineColor3 = blueColor;
-        window.options.lineColor4 = blueColor;
-        window.options.lineColor5 = blueColor;
-        window.options.lineColor6 = blueColor;
-        
-        // 막대 색상 변경 (수채화 세로막대들)
-        window.options.barColor1 = blueColor;
-        window.options.barColor2 = blueColor;
-        window.options.barColor3 = blueColor;
-        window.options.barColor4 = blueColor;
-        window.options.barColor5 = blueColor;
-        window.options.barColor6 = blueColor;
-
-        // 화면 전체 다시 그리기
-        if (window.redrawLines) {
-            window.redrawLines();
-        }
-        if (window.redrawBars) {
-            window.redrawBars();
-        }
-        if (window.updateBarColors) {
-            window.updateBarColors();
+        // EmotionHandler에게 위임
+        if (window.emotionHandler) {
+            window.emotionHandler.onSmileStopped();
         }
     }
 
-    restoreOriginalColors() {
-        if (this.originalColors && window.options) {
-            // 모든 색상 복원
-            // 선 색상 복원
-            window.options.lineColor1 = this.originalColors.lineColor1;
-            window.options.lineColor2 = this.originalColors.lineColor2;
-            window.options.lineColor3 = this.originalColors.lineColor3;
-            window.options.lineColor4 = this.originalColors.lineColor4;
-            window.options.lineColor5 = this.originalColors.lineColor5;
-            window.options.lineColor6 = this.originalColors.lineColor6;
-            
-            // 막대 색상 복원
-            window.options.barColor1 = this.originalColors.barColor1;
-            window.options.barColor2 = this.originalColors.barColor2;
-            window.options.barColor3 = this.originalColors.barColor3;
-            window.options.barColor4 = this.originalColors.barColor4;
-            window.options.barColor5 = this.originalColors.barColor5;
-            window.options.barColor6 = this.originalColors.barColor6;
-
-            // 화면 전체 다시 그리기
-            if (window.redrawLines) {
-                window.redrawLines();
-            }
-            if (window.redrawBars) {
-                window.redrawBars();
-            }
-            if (window.updateBarColors) {
-                window.updateBarColors();
-            }
+    onAngryDetected() {
+        // EmotionHandler에게 위임
+        if (window.emotionHandler) {
+            window.emotionHandler.onAngryDetected();
         }
     }
+
+    onAngryStopped() {
+        // EmotionHandler에게 위임
+        if (window.emotionHandler) {
+            window.emotionHandler.onAngryStopped();
+        }
+    }
+
 
     resetUI() {
         // UI 요소 존재 확인

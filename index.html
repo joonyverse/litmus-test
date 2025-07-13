@@ -87,11 +87,43 @@
         window.addEventListener('load', waitForFirebase);
     </script>
     <script>
-        // QRCode 라이브러리 없이도 작동하도록 수정
+        // 감정 핸들러와 카메라 컨트롤러 로딩
         function loadCameraController() {
+            console.log('감정 핸들러 로딩 시작');
+            
+            // 이미 로드되었는지 확인
+            if (window.EmotionHandler || window.emotionHandler) {
+                console.log('✅ 감정 핸들러 이미 로드됨');
+                loadActualCameraController();
+                return;
+            }
+            
+            // 이미 emotion-handler.js 스크립트가 있는지 확인
+            const existingScript = document.querySelector('script[src="emotion-handler.js"]');
+            if (existingScript) {
+                console.log('✅ 감정 핸들러 스크립트 태그 이미 존재');
+                loadActualCameraController();
+                return;
+            }
+            
+            // 먼저 emotion-handler.js 로드
+            const emotionScript = document.createElement('script');
+            emotionScript.src = 'emotion-handler.js';
+            emotionScript.onload = () => {
+                console.log('✅ 감정 핸들러 로드 완료');
+                loadActualCameraController();
+            };
+            emotionScript.onerror = () => {
+                console.error('❌ 감정 핸들러 로드 실패');
+                loadActualCameraController(); // 실패해도 계속 진행
+            };
+            document.head.appendChild(emotionScript);
+        }
+
+        function loadActualCameraController() {
             console.log('카메라 컨트롤러 로딩 시작');
             import('./camera-controller.js').then(() => {
-                console.log('카메라 컨트롤러 로드 완료');
+                console.log('✅ 카메라 컨트롤러 로드 완료');
                 setupTestButtons();
             }).catch(error => {
                 console.error('카메라 컨트롤러 로드 실패:', error);
@@ -111,17 +143,32 @@
                 return;
             }
 
-            if (testBlueBtn && window.cameraController) {
+            if (testBlueBtn && window.emotionHandler) {
                 testBlueBtn.addEventListener('click', () => {
-                    console.log('테스트: 파란색 변경');
-                    window.cameraController.onSmileDetected();
+                    console.log('테스트: 파란색 변경 (EmotionHandler 직접 호출)');
+                    window.emotionHandler.onSmileDetected();
                 });
             }
 
-            if (testRestoreBtn && window.cameraController) {
+            if (testRestoreBtn && window.emotionHandler) {
+                let testMode = 0; // 0: 중립, 1: 화남, 2: 웃음
                 testRestoreBtn.addEventListener('click', () => {
-                    console.log('테스트: 원래 색상 복원');
-                    window.cameraController.onSmileStopped();
+                    testMode = (testMode + 1) % 3;
+                    
+                    switch(testMode) {
+                        case 0:
+                            console.log('테스트: 중립 상태로 복원');
+                            window.emotionHandler.reset();
+                            break;
+                        case 1:
+                            console.log('테스트: 화남 상태로 변경 (빨간색)');
+                            window.emotionHandler.onAngryDetected();
+                            break;
+                        case 2:
+                            console.log('테스트: 웃음 상태로 변경 (파란색)');
+                            window.emotionHandler.onSmileDetected();
+                            break;
+                    }
                 });
             }
 
@@ -194,7 +241,7 @@
         }
 
         // 페이지 로드 후 바로 시작 (QRCode 라이브러리 의존성 제거)
-        window.addEventListener('load', loadCameraController);
+        // window.addEventListener('load', loadCameraController); // 중복 호출 제거 - Firebase 로딩에서 이미 호출됨
         
         // 로컬 카메라 초기화 및 설정
         let localSmileDetector = null;
@@ -206,20 +253,9 @@
                     console.log('✅ MediaPipe 로드됨, 로컬 카메라 초기화');
                     localSmileDetector = new LocalSmileDetector();
                     
-                    // 웃음 감지 콜백 설정
-                    localSmileDetector.setSmileCallback(() => {
-                        // 웃음 감지 시 파란색으로 변경
-                        if (window.cameraController) {
-                            window.cameraController.onSmileDetected();
-                        }
-                    });
-                    
-                    localSmileDetector.setStopSmileCallback(() => {
-                        // 웃음 멈춤 시 원래 색상으로 복원
-                        if (window.cameraController) {
-                            window.cameraController.onSmileStopped();
-                        }
-                    });
+                    // local-camera.js가 직접 EmotionHandler를 호출하므로 
+                    // 별도 콜백 설정 불필요 (이미 내부에서 처리됨)
+                    console.log('✅ 로컬 카메라가 EmotionHandler와 직접 연동됨');
                     
                     // 전역에서 접근할 수 있도록 저장
                     window.localSmileDetector = localSmileDetector;
