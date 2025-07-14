@@ -270,6 +270,16 @@ export function setupArtGUI(gui, options, onChangeCallback, saveColorSettingsFun
     };
     blankingFolder.add(blankingControls, 'randomizeBlanking').name('Randomize Pattern');
 
+    // 노이즈 효과 컨트롤
+    const noiseFolder = gui.addFolder('Noise Effects');
+    setupFolderStateManagement(noiseFolder, 'noiseEffects');
+    noiseFolder.add(options, 'noiseEnabled').name('Enable Background Noise').onChange(() => {
+        if (window.redrawEffects) {
+            window.redrawEffects();
+        }
+        onChangeCallback();
+    });
+
     return {
         backgroundFolder,
         groupFolder,
@@ -279,6 +289,7 @@ export function setupArtGUI(gui, options, onChangeCallback, saveColorSettingsFun
         lineFolder,
         barFolder,
         naturalFolder,
-        blankingFolder
+        blankingFolder,
+        noiseFolder
     };
 }

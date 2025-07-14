@@ -363,7 +363,11 @@ function drawLines() {
 // 효과 그리기 함수
 function drawEffects() {
     layerManager.clearLayer('effects');
-    drawNoiseOverlay(effectLayer.ctx, canvas.width, canvas.height, 0.08);
+    
+    // 노이즈 효과가 활성화된 경우에만 그리기
+    if (options.noiseEnabled) {
+        drawNoiseOverlay(effectLayer.ctx, canvas.width, canvas.height, 0.08);
+    }
 }
 
 // 메인 그리기 함수

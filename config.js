@@ -73,6 +73,9 @@ const DEFAULT_OPTIONS = {
     blankingEnabled: false,
     blankingPercentage: 30, // 숨길 막대의 비율 (0-100)
     blankingSeed: Math.random(), // 랜덤 시드
+
+    // 노이즈 효과 설정
+    noiseEnabled: true, // 배경 노이즈 활성화/비활성화
 };
 
 // 저장된 설정과 기본 설정을 병합
