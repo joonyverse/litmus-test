@@ -1,7 +1,7 @@
 // 메인 애플리케이션 로직
 import { randChoice, perturbColor, resizeCanvasToWindow, CanvasUtils, LayerManager } from './utils/index.js';
 import { options, palettes, setupGUI, saveColorSettings, getRowOffset, updateRowOffsetControls } from './config.js';
-import { WatercolorBar, WatercolorLine } from './classes/index.js';
+import { WatercolorBar, WatercolorLine, SimpleBar } from './classes/index.js';
 import { drawNoiseOverlay } from './effects.js';
 
 // options 객체를 전역으로 노출 (camera-controller에서 접근할 수 있도록)
@@ -34,7 +34,7 @@ const layerManager = new LayerManager(canvas);
 let barLayer, lineLayer, effectLayer;
 
 // 그리기 클래스 인스턴스들 (레이어별로 분리)
-let watercolorBar, watercolorLine;
+let watercolorBar, watercolorLine, simpleBar;
 
 // 막대와 선의 위치 추적을 위한 배열
 let barElements = [];
@@ -62,6 +62,7 @@ function initializeLayers() {
     // 그리기 클래스 인스턴스 생성
     watercolorBar = new WatercolorBar(barLayer.ctx);
     watercolorLine = new WatercolorLine(lineLayer.ctx);
+    simpleBar = new SimpleBar(barLayer.ctx);
 }
 
 // 그리드 계산 헬퍼 함수
@@ -154,6 +155,22 @@ function calculateBarPosition(col, row, grid) {
     let y = marginTop + row * (barHeight + barGapY) + (seededRandom(positionSeed + 100) - 0.5) * 4;
     
     // 행별 오프셋 적용
+    const rowOffset = getRowOffset(row);
+    x += rowOffset.x;
+    y += rowOffset.y;
+    
+    return { x, y };
+}
+
+// Mono 모드용 단순 위치 계산 (랜덤성 없음)
+function calculateSimpleBarPosition(col, row, grid) {
+    const { barWidth, barHeight, barGapX, barGapY, marginLeft, marginTop } = grid;
+    
+    // 기본 위치 계산 (랜덤성 없음)
+    let x = marginLeft + col * (barWidth + barGapX);
+    let y = marginTop + row * (barHeight + barGapY);
+    
+    // 행별 오프셋 적용 (사용자가 수동으로 설정한 오프셋은 유지)
     const rowOffset = getRowOffset(row);
     x += rowOffset.x;
     y += rowOffset.y;
@@ -306,8 +323,6 @@ function drawBars() {
             if (shouldBlank(col, row)) continue;
             
             const grid = calculateGrid();
-            const { x, y } = calculateBarPosition(col, row, grid);
-            const { actualHeight, rotation, wobble } = calculateBarProperties(col, row);
             
             // 개별 색상이 있으면 오버라이드, 없으면 그룹 기반 색상 사용
             let color = getIndividualBarColor(col, row);
@@ -317,23 +332,50 @@ function drawBars() {
                 console.log(`Using individual color for bar at (${col}, ${row}): ${color} (overriding group color)`);
             }
             
-            watercolorBar.draw(x, y, grid.barWidth, actualHeight, perturbColor(color, 24), rotation, wobble);
-            
-            // 막대 위치 정보 저장 (클릭 감지용)
-            const barColors = [options.barColor1, options.barColor2, options.barColor3, options.barColor4, options.barColor5, options.barColor6];
-            const colorIndex = barColors.indexOf(color);
-            
-            barElements.push({
-                type: 'bar',
-                x: x,
-                y: y,
-                width: grid.barWidth,
-                height: actualHeight,
-                colorIndex: colorIndex,
-                col: col,
-                row: row,
-                individualColor: color // 개별 색상 저장
-            });
+            // 모드에 따라 다른 렌더링 방식 사용
+            if (options.monoMode) {
+                // Mono 모드: 랜덤성 없는 단순한 바
+                const { x, y } = calculateSimpleBarPosition(col, row, grid);
+                const barHeight = grid.barHeight; // 랜덤 변화 없이 고정 높이
+                simpleBar.drawBar(x, y, grid.barWidth, barHeight, color);
+                
+                // 막대 위치 정보 저장 (클릭 감지용)
+                const barColors = [options.barColor1, options.barColor2, options.barColor3, options.barColor4, options.barColor5, options.barColor6];
+                const colorIndex = barColors.indexOf(color);
+                
+                barElements.push({
+                    type: 'bar',
+                    x: x,
+                    y: y,
+                    width: grid.barWidth,
+                    height: barHeight,
+                    colorIndex: colorIndex,
+                    col: col,
+                    row: row,
+                    individualColor: color
+                });
+            } else {
+                // 수채화 모드: 기존 수채화 효과 포함 (랜덤성 적용)
+                const { x, y } = calculateBarPosition(col, row, grid);
+                const { actualHeight, rotation, wobble } = calculateBarProperties(col, row);
+                watercolorBar.draw(x, y, grid.barWidth, actualHeight, perturbColor(color, 24), rotation, wobble);
+                
+                // 막대 위치 정보 저장 (클릭 감지용)
+                const barColors = [options.barColor1, options.barColor2, options.barColor3, options.barColor4, options.barColor5, options.barColor6];
+                const colorIndex = barColors.indexOf(color);
+                
+                barElements.push({
+                    type: 'bar',
+                    x: x,
+                    y: y,
+                    width: grid.barWidth,
+                    height: actualHeight,
+                    colorIndex: colorIndex,
+                    col: col,
+                    row: row,
+                    individualColor: color
+                });
+            }
         }
     }
 }

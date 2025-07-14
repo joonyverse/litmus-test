@@ -76,6 +76,9 @@ const DEFAULT_OPTIONS = {
 
     // 노이즈 효과 설정
     noiseEnabled: true, // 배경 노이즈 활성화/비활성화
+
+    // 렌더링 모드 설정
+    monoMode: false, // true: 단순 색상 바, false: 수채화 효과 바
 };
 
 // 저장된 설정과 기본 설정을 병합

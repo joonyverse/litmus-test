@@ -280,6 +280,16 @@ export function setupArtGUI(gui, options, onChangeCallback, saveColorSettingsFun
         onChangeCallback();
     });
 
+    // 렌더링 모드 컨트롤
+    const modeFolder = gui.addFolder('Rendering Mode');
+    setupFolderStateManagement(modeFolder, 'renderingMode');
+    modeFolder.add(options, 'monoMode').name('Mono Mode (Simple Bars)').onChange(() => {
+        if (window.redrawBars) {
+            window.redrawBars();
+        }
+        onChangeCallback();
+    });
+
     return {
         backgroundFolder,
         groupFolder,
@@ -290,6 +300,7 @@ export function setupArtGUI(gui, options, onChangeCallback, saveColorSettingsFun
         barFolder,
         naturalFolder,
         blankingFolder,
-        noiseFolder
+        noiseFolder,
+        modeFolder
     };
 }
